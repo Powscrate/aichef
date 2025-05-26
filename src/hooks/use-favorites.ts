@@ -50,9 +50,13 @@ export function useFavorites() {
     setFavorites((prevFavorites) => prevFavorites.filter(fav => fav.name !== recipeName));
   }, []);
 
+  const removeAllFavorites = useCallback(() => {
+    setFavorites([]);
+  }, []);
+
   const isFavorited = useCallback((recipeName: string) => {
     return favorites.some(fav => fav.name === recipeName);
   }, [favorites]);
 
-  return { favorites, addFavorite, removeFavorite, isFavorited, isLoaded };
+  return { favorites, addFavorite, removeFavorite, removeAllFavorites, isFavorited, isLoaded };
 }

@@ -10,12 +10,12 @@ import { UtensilsCrossed, HeartCrack } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FavoritesPage() {
-  const { favorites, removeFavorite, isLoaded } = useFavorites();
+  const { favorites, removeFavorite, removeAllFavorites, isLoaded } = useFavorites(); // Added removeAllFavorites
   const { toast } = useToast();
 
   const handleRemoveAllFavorites = () => {
     if (favorites.length > 0) {
-      favorites.forEach(fav => removeFavorite(fav.name));
+      removeAllFavorites(); // Use the new hook function
       toast({
         title: "Favoris supprimés",
         description: "Toutes vos recettes favorites ont été supprimées.",
