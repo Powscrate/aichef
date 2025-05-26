@@ -1,7 +1,7 @@
 // src/app/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles } from "lucide-react";
 
 const formSchema = z.object({
-  ingredients: z.string().min(3, { message: "Veuillez entrer au moins un ingrédient." }),
+  ingredients: z.string().min(3, { message: "Veuillez entrer au moins un ingrédient (minimum 3 caractères)." }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -28,6 +28,12 @@ export default function AIPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
+
 
   const {
     register,
@@ -59,17 +65,22 @@ export default function AIPage() {
           title: "Aucune recette trouvée",
           description: "L'IA n'a trouvé aucune recette pour les ingrédients fournis. Essayez-en d'autres !",
         });
+      } else {
+        toast({
+          title: "Recettes trouvées!",
+          description: `L'IA a concocté ${result.data.length} recette(s) pour vous.`,
+        });
       }
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-2 gap-8 xl:grid-cols-5 xl:gap-12">
           <div className="lg:col-span-1 xl:col-span-2">
-            <Card className="shadow-xl lg:sticky lg:top-24">
+            <Card className="shadow-xl lg:sticky lg:top-24 bg-card text-card-foreground border-border">
               <CardHeader className="text-center">
                 <CardTitle className="text-3xl lg:text-4xl font-extrabold tracking-tight text-primary">
                   Qu'y a-t-il dans votre garde-manger ?
@@ -82,13 +93,13 @@ export default function AIPage() {
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   <div>
                     <Label htmlFor="ingredients" className="block text-sm font-medium text-foreground mb-1">
-                      Vos ingrédients
+                      Vos ingrédients (séparés par une virgule)
                     </Label>
                     <Textarea
                       id="ingredients"
                       {...register("ingredients")}
                       placeholder="ex: blanc de poulet, brocoli, sauce soja, riz"
-                      className="min-h-[100px] text-base"
+                      className="min-h-[100px] text-base bg-input border-border focus:ring-primary"
                       aria-invalid={errors.ingredients ? "true" : "false"}
                     />
                     {errors.ingredients && (
@@ -119,7 +130,11 @@ export default function AIPage() {
         </div>
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
-        <p>&copy; {new Date().getFullYear()} Chef IA Simplifié. Propulsé par Genkit.</p>
+        {currentYear !== null ? (
+          <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
+        ) : (
+          <p>Chargement...</p>
+        )}
       </footer>
     </div>
   );

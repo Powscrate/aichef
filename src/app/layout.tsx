@@ -24,8 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`} suppressHydrationWarning>
+    // Adding suppressHydrationWarning to <html> as well, just in case extensions modify it.
+    // The primary fix for the body tag warning is in the body tag itself.
+    <html lang="fr" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`} suppressHydrationWarning>
         {children}
         <Toaster />
       </body>

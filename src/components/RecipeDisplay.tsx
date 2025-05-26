@@ -10,8 +10,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFavorites } from "@/hooks/use-favorites";
+import { useToast } from "@/hooks/use-toast";
 
 interface RecipeDisplayProps {
   recipes: Recipe[];
@@ -20,6 +23,29 @@ interface RecipeDisplayProps {
 }
 
 export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps) {
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
+  const { toast } = useToast();
+
+  const isFavorited = (recipeName: string) => {
+    return favorites.some(fav => fav.name === recipeName);
+  };
+
+  const handleFavoriteToggle = (recipe: Recipe) => {
+    if (isFavorited(recipe.name)) {
+      removeFavorite(recipe.name);
+      toast({
+        title: "Retirée des favoris",
+        description: `"${recipe.name}" a été retirée de vos favoris.`,
+      });
+    } else {
+      addFavorite(recipe);
+      toast({
+        title: "Ajoutée aux favoris!",
+        description: `"${recipe.name}" a été ajoutée à vos favoris.`,
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-8">
@@ -49,7 +75,7 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
     );
   }
 
-  if (recipes.length === 0 && !isLoading) { // Ensure not to show this during initial load if recipes will appear
+  if (recipes.length === 0 && !isLoading) {
     return (
       <div className="mt-8 text-center text-muted-foreground py-10">
         <UtensilsCrossed className="mx-auto h-12 w-12 mb-4" />
@@ -58,31 +84,33 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
     );
   }
   
-  if (recipes.length === 0) { // Handles case where AI returns empty but no error (covered by toast on page.tsx)
+  if (recipes.length === 0) {
     return null; 
   }
-
 
   return (
     <Accordion type="single" collapsible className="w-full space-y-4 mt-8">
       {recipes.map((recipe, index) => (
-        <AccordionItem value={`recipe-${index}`} key={index} className="border bg-card rounded-lg shadow-sm">
-          <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline text-primary">
-            <div className="flex items-center gap-3">
-              <CookingPot className="h-6 w-6" />
-              <span>{recipe.name}</span>
+        <AccordionItem value={`recipe-${index}`} key={index} className="border bg-card rounded-lg shadow-sm overflow-hidden">
+          <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline text-primary w-full">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <CookingPot className="h-6 w-6" />
+                <span className="text-left">{recipe.name}</span>
+              </div>
+              {/* ChevronDown is part of AccordionTrigger by default */}
             </div>
           </AccordionTrigger>
           <AccordionContent className="p-6 pt-0">
             <div className="space-y-6">
               {recipe.imageUrl ? (
-                <div className="mb-4 overflow-hidden rounded-md shadow">
+                <div className="mb-4 overflow-hidden rounded-md shadow aspect-[16/10] relative">
                   <Image 
                     src={recipe.imageUrl} 
                     alt={`Image de ${recipe.name}`} 
-                    width={400} 
-                    height={250} 
-                    className="rounded-md object-cover w-full aspect-[16/10]"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="rounded-md object-cover"
                     data-ai-hint={recipe.name.toLowerCase().split(' ').slice(0,2).join(' ')}
                   />
                 </div>
@@ -92,6 +120,16 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
                   <p className="text-md text-muted-foreground">Aperçu non disponible</p>
                 </div>
               )}
+               <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleFavoriteToggle(recipe)}
+                className="w-full sm:w-auto flex items-center gap-2 group"
+                aria-label={isFavorited(recipe.name) ? "Retirer des favoris" : "Ajouter aux favoris"}
+              >
+                <Heart className={`h-5 w-5 transition-colors duration-200 ${isFavorited(recipe.name) ? 'fill-red-500 text-red-500' : 'text-muted-foreground group-hover:text-red-500'}`} />
+                {isFavorited(recipe.name) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              </Button>
               <div>
                 <h3 className="text-md font-medium mb-2 flex items-center gap-2 text-foreground">
                   <ListChecks className="h-5 w-5 text-primary" />

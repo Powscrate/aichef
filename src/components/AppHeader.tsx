@@ -1,6 +1,8 @@
 // src/components/AppHeader.tsx
 import Link from 'next/link';
 import { ChefHatIcon } from '@/components/icons/ChefHatIcon';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Star } from 'lucide-react';
 
 export function AppHeader() {
   return (
@@ -12,7 +14,13 @@ export function AppHeader() {
             Chef IA <span className="text-primary">Simplifié</span>
           </h1>
         </Link>
-        {/* Navigation links can go here if needed */}
+        <div className="flex items-center gap-4">
+          <Link href="/favorites" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Star className="h-5 w-5" />
+            Mes Favoris
+          </Link>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
