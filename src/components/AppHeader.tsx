@@ -7,9 +7,9 @@ import { Star } from 'lucide-react';
 export function AppHeader() {
   return (
     <header className="py-4 bg-background sticky top-0 z-40 w-full border-b border-border">
-      <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
         <Link href="/" className="flex items-center gap-2">
-          <ChefHatIcon className="h-8 w-8 text-primary" />
+          <img src='/favicon.ico' className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             AI <span className="text-primary">Chef</span>
           </h1>
