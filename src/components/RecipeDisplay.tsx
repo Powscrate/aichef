@@ -9,9 +9,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Card components are not used here anymore, but kept for potential future use.
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info } from "lucide-react";
+import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +51,23 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
       toast({
         title: "Ajoutée aux favoris!",
         description: `"${recipe.name}" a été ajoutée à vos favoris.`,
+      });
+    }
+  };
+
+  const handleCopyToClipboard = async (textToCopy: string, type: 'ingrédients' | 'instructions') => {
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      toast({
+        title: "Copié !",
+        description: `Les ${type} ont été copiés dans le presse-papiers.`,
+      });
+    } catch (err) {
+      console.error(`Échec de la copie des ${type}: `, err);
+      toast({
+        title: "Erreur de copie",
+        description: `Impossible de copier les ${type}.`,
+        variant: "destructive",
       });
     }
   };
@@ -108,7 +124,6 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
                 <CookingPot className="h-6 w-6" />
                 <span className="text-left">{recipe.name}</span>
               </div>
-              {/* ChevronDown is part of AccordionTrigger by default */}
             </div>
           </AccordionTrigger>
           <AccordionContent className="p-6 pt-0">
@@ -141,10 +156,21 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
                 {isFavorited(recipe.name) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               </Button>
               <div>
-                <h3 className="text-md font-medium mb-2 flex items-center gap-2 text-foreground">
-                  <ListChecks className="h-5 w-5 text-primary" />
-                  Ingrédients
-                </h3>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
+                    <ListChecks className="h-5 w-5 text-primary" />
+                    Ingrédients
+                  </h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleCopyToClipboard(recipe.ingredients.join('\n'), 'ingrédients')}
+                    className="text-muted-foreground hover:text-primary"
+                    aria-label="Copier les ingrédients"
+                  >
+                    <ClipboardCopy className="h-4 w-4 mr-2" /> Copier
+                  </Button>
+                </div>
                 <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
                   {recipe.ingredients.map((ingredient, i) => (
                     <li key={i}>{ingredient}</li>
@@ -152,10 +178,21 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
                 </ul>
               </div>
               <div>
-                <h3 className="text-md font-medium mb-3 flex items-center gap-2 text-foreground">
-                  <UtensilsCrossed className="h-5 w-5 text-primary" />
-                  Instructions
-                </h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
+                    <UtensilsCrossed className="h-5 w-5 text-primary" />
+                    Instructions
+                  </h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleCopyToClipboard(recipe.instructions, 'instructions')}
+                    className="text-muted-foreground hover:text-primary"
+                    aria-label="Copier les instructions"
+                  >
+                    <ClipboardCopy className="h-4 w-4 mr-2" /> Copier
+                  </Button>
+                </div>
                 <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed prose prose-sm max-w-none">
                   {recipe.instructions.split('\n').map((line, idx) => (
                     <p key={idx} className="mb-1">{line}</p>
@@ -184,3 +221,10 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
     </Accordion>
   );
 }
+
+// Pour éviter les erreurs de build temporaires, on ajoute Card, CardHeader, CardContent ici même si non utilisés directement dans ce fichier après les modifs.
+// Cela peut arriver si d'autres composants importent ces éléments spécifiquement depuis ce fichier.
+// Normalement, ils devraient être importés depuis "@/components/ui/card"
+// Ceci est une solution de contournement temporaire si le build échoue à cause de cela.
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+export { Card, CardContent, CardHeader, CardTitle };
