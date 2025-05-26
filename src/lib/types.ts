@@ -13,3 +13,22 @@ export interface Recipe {
   imageUrl?: string;
   nutritionalInfo?: NutritionalInfo;
 }
+
+// Nouveaux types pour les variations de recettes
+export interface RecipeVariation {
+  variationName: string;
+  description: string;
+  changesToIngredients?: string[];
+  changesToInstructions?: string;
+}
+
+export interface SuggestRecipeVariationsOutput {
+  variations: RecipeVariation[];
+}
+
+// Pour l'état dans RecipeDisplay
+export interface RecipeWithVariations extends Recipe {
+  variations?: RecipeVariation[];
+  isLoadingVariations?: boolean;
+  variationsError?: string | null;
+}

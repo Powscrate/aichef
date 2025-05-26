@@ -1,7 +1,8 @@
 // src/components/RecipeDisplay.tsx
 "use client";
 
-import type { Recipe, NutritionalInfo } from "@/lib/types";
+import React, { useState } from "react"; // Ajout de useState
+import type { Recipe, NutritionalInfo, RecipeVariation, RecipeWithVariations } from "@/lib/types"; // Ajout de RecipeVariation et RecipeWithVariations
 import Image from 'next/image';
 import {
   Accordion,
@@ -10,13 +11,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle as ShadcnCardTitle } from "@/components/ui/card"; // Renommé CardTitle pour éviter conflit
+import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2 } from "lucide-react"; // Ajout de Lightbulb, Loader2
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useToast } from "@/hooks/use-toast";
+import { getRecipeVariationsAction } from "@/app/actions"; // Ajout de l'action
 
 interface RecipeDisplayProps {
-  recipes: Recipe[];
+  recipes: Recipe[]; // Utilise Recipe simple ici, l'état local gérera les variations
   isLoading: boolean;
   error: string | null;
 }
@@ -31,9 +34,25 @@ const NutritionItem: React.FC<{ icon: React.ElementType; label: string; value?: 
   );
 };
 
-export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps) {
+export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: RecipeDisplayProps) {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const { toast } = useToast();
+  
+  // Gérer l'état des variations localement pour chaque recette
+  const [recipesWithVariations, setRecipesWithVariations] = useState<RecipeWithVariations[]>(
+    initialRecipes.map(r => ({...r, variations: [], isLoadingVariations: false, variationsError: null}))
+  );
+
+  React.useEffect(() => {
+    setRecipesWithVariations(initialRecipes.map(r => ({
+      ...r, 
+      variations: recipesWithVariations.find(rwv => rwv.name === r.name)?.variations || [],
+      isLoadingVariations: recipesWithVariations.find(rwv => rwv.name === r.name)?.isLoadingVariations || false,
+      variationsError: recipesWithVariations.find(rwv => rwv.name === r.name)?.variationsError || null,
+    })));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRecipes]);
+
 
   const isFavorited = (recipeName: string) => {
     return favorites.some(fav => fav.name === recipeName);
@@ -72,6 +91,35 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
     }
   };
 
+  const handleSuggestVariations = async (recipeName: string) => {
+    const recipeIndex = recipesWithVariations.findIndex(r => r.name === recipeName);
+    if (recipeIndex === -1) return;
+
+    const currentRecipe = recipesWithVariations[recipeIndex];
+
+    setRecipesWithVariations(prev => prev.map(r => r.name === recipeName ? {...r, isLoadingVariations: true, variationsError: null, variations: [] } : r));
+
+    const result = await getRecipeVariationsAction(currentRecipe.name, currentRecipe.ingredients, currentRecipe.instructions);
+
+    if (result.error) {
+      setRecipesWithVariations(prev => prev.map(r => r.name === recipeName ? {...r, isLoadingVariations: false, variationsError: result.error } : r));
+      toast({
+        title: "Erreur de Variations",
+        description: result.error,
+        variant: "destructive",
+      });
+    } else if (result.data && result.data.variations) {
+      setRecipesWithVariations(prev => prev.map(r => r.name === recipeName ? {...r, isLoadingVariations: false, variations: result.data?.variations } : r));
+      toast({
+        title: "Variations Suggérées!",
+        description: `L'IA a trouvé ${result.data.variations.length} variation(s) pour "${recipeName}".`,
+      });
+    } else {
+       setRecipesWithVariations(prev => prev.map(r => r.name === recipeName ? {...r, isLoadingVariations: false, variationsError: "Aucune variation n'a été trouvée." } : r));
+    }
+  };
+
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-8">
@@ -81,7 +129,7 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
               <Skeleton className="h-8 w-3/4 rounded-md" />
             </CardHeader>
             <CardContent className="space-y-4">
-              <Skeleton className="h-40 w-full rounded-md" /> {/* Skeleton for image */}
+              <Skeleton className="h-40 w-full rounded-md" />
               <Skeleton className="h-4 w-full rounded-md" />
               <Skeleton className="h-4 w-5/6 rounded-md" />
               <Skeleton className="h-4 w-1/2 rounded-md" />
@@ -100,8 +148,8 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
       </div>
     );
   }
-
-  if (recipes.length === 0 && !isLoading) {
+  
+  if (initialRecipes.length === 0 && !isLoading) {
     return (
       <div className="mt-8 text-center text-muted-foreground py-10">
         <UtensilsCrossed className="mx-auto h-12 w-12 mb-4" />
@@ -110,14 +158,14 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
     );
   }
   
-  if (recipes.length === 0) {
+  if (initialRecipes.length === 0) {
     return null; 
   }
 
   return (
     <Accordion type="single" collapsible className="w-full space-y-4 mt-8">
-      {recipes.map((recipe, index) => (
-        <AccordionItem value={`recipe-${index}`} key={index} className="border border-border bg-card rounded-lg shadow-sm overflow-hidden">
+      {recipesWithVariations.map((recipe, index) => (
+        <AccordionItem value={`recipe-${index}`} key={recipe.name} className="border border-border bg-card rounded-lg shadow-sm overflow-hidden">
           <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline text-primary w-full">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3">
@@ -200,7 +248,7 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
                 </div>
               </div>
 
-              {recipe.nutritionalInfo && (Object.keys(recipe.nutritionalInfo).length > 0) && (
+              {recipe.nutritionalInfo && (Object.values(recipe.nutritionalInfo).some(val => val)) && (
                 <div className="pt-4 border-t border-border">
                   <h3 className="text-md font-medium mb-3 flex items-center gap-2 text-foreground">
                     <Info className="h-5 w-5 text-primary" />
@@ -214,6 +262,77 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
                   </div>
                 </div>
               )}
+
+              {/* Section pour les variations de recettes */}
+              <div className="pt-4 border-t border-border">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => handleSuggestVariations(recipe.name)} 
+                  disabled={recipe.isLoadingVariations}
+                  className="w-full sm:w-auto"
+                >
+                  {recipe.isLoadingVariations ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Recherche de variations...
+                    </>
+                  ) : (
+                    <>
+                      <Lightbulb className="mr-2 h-4 w-4" />
+                      Suggérer des Variations
+                    </>
+                  )}
+                </Button>
+
+                {recipe.isLoadingVariations && (
+                  <div className="mt-4 space-y-3">
+                    <Skeleton className="h-6 w-1/2 rounded" />
+                    <Skeleton className="h-4 w-3/4 rounded" />
+                    <Skeleton className="h-4 w-full rounded" />
+                  </div>
+                )}
+
+                {recipe.variationsError && (
+                  <div className="mt-4 p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    <p>{recipe.variationsError}</p>
+                  </div>
+                )}
+
+                {recipe.variations && recipe.variations.length > 0 && !recipe.isLoadingVariations && (
+                  <div className="mt-6 space-y-4">
+                    <h4 className="text-base font-medium text-foreground">Idées de Variations :</h4>
+                    {recipe.variations.map((variation, vIndex) => (
+                      <Card key={vIndex} className="bg-muted/50 border-border shadow-sm">
+                        <CardHeader className="pb-3">
+                          <ShadcnCardTitle className="text-md text-primary">{variation.variationName}</ShadcnCardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm space-y-2">
+                          <p className="text-muted-foreground italic">{variation.description}</p>
+                          {variation.changesToIngredients && variation.changesToIngredients.length > 0 && (
+                            <div>
+                              <strong className="text-foreground">Changements d'ingrédients :</strong>
+                              <ul className="list-disc list-inside ml-4 mt-1 text-muted-foreground">
+                                {variation.changesToIngredients.map((change, ciIndex) => (
+                                  <li key={ciIndex}>{change}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {variation.changesToInstructions && (
+                            <div>
+                              <strong className="text-foreground">Changements d'instructions :</strong>
+                              <p className="mt-1 text-muted-foreground whitespace-pre-line">{variation.changesToInstructions}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -226,5 +345,6 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
 // Cela peut arriver si d'autres composants importent ces éléments spécifiquement depuis ce fichier.
 // Normalement, ils devraient être importés depuis "@/components/ui/card"
 // Ceci est une solution de contournement temporaire si le build échoue à cause de cela.
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-export { Card, CardContent, CardHeader, CardTitle };
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// export { Card, CardContent, CardHeader, CardTitle }; // CardTitle déjà ShadcnCardTitle
+export { Card, CardContent, CardHeader };

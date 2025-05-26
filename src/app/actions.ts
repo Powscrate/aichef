@@ -1,29 +1,31 @@
 // src/app/actions.ts
 "use server";
 
-import { suggestRecipes, type SuggestRecipesInput, type SuggestRecipesOutput } from "@/ai/flows/suggest-recipes";
+import { suggestRecipes, type SuggestRecipesInput, type SuggestRecipesOutput as SuggestRecipesGenkitOutput } from "@/ai/flows/suggest-recipes";
 import { generateRecipeImage, type GenerateRecipeImageInput } from "@/ai/flows/generate-recipe-image-flow";
-import type { Recipe } from "@/lib/types";
+import { suggestRecipeVariations, type SuggestRecipeVariationsInput, type SuggestRecipeVariationsOutput as SuggestRecipeVariationsGenkitOutput } from "@/ai/flows/suggest-recipe-variations-flow";
 
-interface ActionResult {
+import type { Recipe, SuggestRecipeVariationsOutput } from "@/lib/types";
+
+interface RecipeActionResult {
   data: Recipe[] | null;
   error: string | null;
 }
 
-export async function getRecipesAction(ingredients: string): Promise<ActionResult> {
+export async function getRecipesAction(ingredients: string): Promise<RecipeActionResult> {
   if (!ingredients || ingredients.trim() === "") {
     return { data: null, error: "Veuillez entrer quelques ingrédients." };
   }
 
   try {
     const recipeTextInput: SuggestRecipesInput = { ingredients };
-    const recipeTextResult: SuggestRecipesOutput = await suggestRecipes(recipeTextInput);
+    // Utiliser le type de Genkit pour la sortie ici
+    const recipeTextResult: SuggestRecipesGenkitOutput = await suggestRecipes(recipeTextInput);
     
     if (!recipeTextResult || !recipeTextResult.recipes) {
       return { data: null, error: "Impossible de générer des recettes. L'IA a renvoyé un format inattendu." };
     }
 
-    // Paralléliser la génération d'images
     const recipesWithImagesPromises = recipeTextResult.recipes.map(async (recipeBase) => {
       try {
         const imageInput: GenerateRecipeImageInput = { recipeName: recipeBase.name };
@@ -31,7 +33,6 @@ export async function getRecipesAction(ingredients: string): Promise<ActionResul
         return { ...recipeBase, imageUrl };
       } catch (imageError) {
         console.error(`Erreur lors de la génération de l'image pour la recette "${recipeBase.name}":`, imageError);
-        // Retourner la recette avec imageUrl: undefined en cas d'erreur de génération d'image
         return { ...recipeBase, imageUrl: undefined };
       }
     });
@@ -43,9 +44,42 @@ export async function getRecipesAction(ingredients: string): Promise<ActionResul
   } catch (e) {
     console.error("Erreur dans getRecipesAction:", e);
     const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la récupération des recettes.";
-    
-    // Note: L'erreur spécifique de génération d'image est maintenant gérée dans la boucle map/catch ci-dessus.
-    // Cette section d'erreur est pour les erreurs plus générales de `suggestRecipes` ou des problèmes inattendus.
+    return { data: null, error: errorMessage };
+  }
+}
+
+
+interface VariationActionResult {
+  data: SuggestRecipeVariationsOutput | null; // Utilise le type de lib/types.ts
+  error: string | null;
+}
+
+export async function getRecipeVariationsAction(
+  recipeName: string,
+  ingredients: string[],
+  instructions: string
+): Promise<VariationActionResult> {
+  if (!recipeName || ingredients.length === 0 || !instructions) {
+    return { data: null, error: "Les détails de la recette originale sont nécessaires pour suggérer des variations." };
+  }
+
+  const input: SuggestRecipeVariationsInput = {
+    originalRecipeName: recipeName,
+    originalIngredients: ingredients,
+    originalInstructions: instructions,
+  };
+
+  try {
+    // Utiliser le type de Genkit pour la sortie ici
+    const result: SuggestRecipeVariationsGenkitOutput = await suggestRecipeVariations(input);
+    if (!result || !result.variations || result.variations.length === 0) {
+      return { data: null, error: "L'IA n'a pas pu suggérer de variations pour cette recette." };
+    }
+    // Le type de retour de cette action est SuggestRecipeVariationsOutput de lib/types.ts
+    return { data: result as SuggestRecipeVariationsOutput, error: null };
+  } catch (e) {
+    console.error(`Erreur dans getRecipeVariationsAction pour "${recipeName}":`, e);
+    const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la suggestion de variations.";
     return { data: null, error: errorMessage };
   }
 }
