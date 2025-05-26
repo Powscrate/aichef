@@ -70,10 +70,10 @@ export default function AIPage() {
         <div className="max-w-2xl mx-auto">
           <Card className="shadow-xl">
             <CardHeader className="text-center">
-              <CardTitle className="text-3xl font-bold tracking-tight text-primary">
+              <CardTitle className="text-4xl font-extrabold tracking-tight text-primary">
                 Qu'y a-t-il dans votre garde-manger ?
               </CardTitle>
-              <CardDescription className="text-md text-muted-foreground pt-1">
+              <CardDescription className="text-lg text-muted-foreground pt-2">
                 Entrez vos ingrédients, et notre chef IA vous concoctera des idées de recettes !
               </CardDescription>
             </CardHeader>
@@ -114,7 +114,7 @@ export default function AIPage() {
           <RecipeDisplay recipes={recipes} isLoading={isLoading} error={error} />
         </div>
       </main>
-      <footer className="py-6 text-center text-sm text-muted-foreground border-t">
+      <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
         <p>&copy; {new Date().getFullYear()} Chef IA Simplifié. Propulsé par Genkit.</p>
       </footer>
     </div>

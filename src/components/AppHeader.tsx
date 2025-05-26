@@ -4,7 +4,7 @@ import { ChefHatIcon } from '@/components/icons/ChefHatIcon';
 
 export function AppHeader() {
   return (
-    <header className="py-6 bg-background sticky top-0 z-40 w-full border-b">
+    <header className="py-4 bg-background sticky top-0 z-40 w-full border-b border-border">
       <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
           <ChefHatIcon className="h-8 w-8 text-primary" />

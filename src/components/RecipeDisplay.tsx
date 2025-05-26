@@ -67,7 +67,7 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
     <Accordion type="single" collapsible className="w-full space-y-4 mt-8">
       {recipes.map((recipe, index) => (
         <AccordionItem value={`recipe-${index}`} key={index} className="border bg-card rounded-lg shadow-sm">
-          <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline text-[hsl(var(--accent))]">
+          <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline text-primary">
             <div className="flex items-center gap-3">
               <CookingPot className="h-6 w-6" />
               <span>{recipe.name}</span>
@@ -88,8 +88,8 @@ export function RecipeDisplay({ recipes, isLoading, error }: RecipeDisplayProps)
                 </div>
               ) : (
                 <div className="mb-4 flex flex-col items-center justify-center h-40 bg-muted/50 rounded-md border border-dashed">
-                  <ImageOff className="h-10 w-10 text-muted-foreground mb-2"/>
-                  <p className="text-sm text-muted-foreground">Aperçu non disponible</p>
+                  <ImageOff className="h-12 w-12 text-muted-foreground mb-3"/>
+                  <p className="text-md text-muted-foreground">Aperçu non disponible</p>
                 </div>
               )}
               <div>
