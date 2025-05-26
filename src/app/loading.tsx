@@ -17,7 +17,7 @@ export default function Loading() {
         </div>
       </main>
        <footer className="py-6 text-center text-sm text-muted-foreground border-t">
-        <p>&copy; {new Date().getFullYear()} AI Chef Simplified. Powered by Delicious AI.</p>
+        <p>&copy; {new Date().getFullYear()} Chef IA Simplifié. Propulsé par Genkit.</p>
       </footer>
     </div>
   );

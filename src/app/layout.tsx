@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AI Chef Simplified',
-  description: 'Get recipe suggestions from AI based on your ingredients.',
+  title: 'Chef IA Simplifié',
+  description: 'Obtenez des suggestions de recettes par IA en fonction de vos ingrédients.',
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Toaster />

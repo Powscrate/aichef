@@ -35,14 +35,14 @@ const prompt = ai.definePrompt({
   name: 'suggestRecipesPrompt',
   input: {schema: SuggestRecipesInputSchema},
   output: {schema: SuggestRecipesOutputSchema},
-  prompt: `You are a world-class chef. Given the following ingredients, suggest recipes that can be made with them.
+  prompt: `You are a world-class chef. Given the following ingredients, suggest recipes that can be made with them. All recipe names, ingredients, and instructions must be in French.
 
 Ingredients: {{{ingredients}}}
 
 Suggest at least three recipes.
 
 Format your response as a JSON object with a "recipes" field. Each recipe should have a "name", "ingredients", and "instructions" field. The ingredients field is a list of strings.
-`, // Ensure proper formatting for LLM parsing
+`,
 });
 
 const suggestRecipesFlow = ai.defineFlow(

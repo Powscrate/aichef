@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles } from "lucide-react";
 
 const formSchema = z.object({
-  ingredients: z.string().min(3, { message: "Please enter at least one ingredient." }),
+  ingredients: z.string().min(3, { message: "Veuillez entrer au moins un ingrédient." }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -48,7 +48,7 @@ export default function AIPage() {
     if (result.error) {
       setError(result.error);
       toast({
-        title: "Error",
+        title: "Erreur",
         description: result.error,
         variant: "destructive",
       });
@@ -56,8 +56,8 @@ export default function AIPage() {
       setRecipes(result.data);
       if (result.data.length === 0) {
         toast({
-          title: "No Recipes Found",
-          description: "The AI couldn't find any recipes for the provided ingredients. Try different ones!",
+          title: "Aucune recette trouvée",
+          description: "L'IA n'a trouvé aucune recette pour les ingrédients fournis. Essayez-en d'autres !",
         });
       }
     }
@@ -71,22 +71,22 @@ export default function AIPage() {
           <Card className="shadow-xl">
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold tracking-tight text-primary">
-                What's in Your Pantry?
+                Qu'y a-t-il dans votre garde-manger ?
               </CardTitle>
               <CardDescription className="text-md text-muted-foreground pt-1">
-                Enter your ingredients, and our AI chef will whip up some recipe ideas!
+                Entrez vos ingrédients, et notre chef IA vous concoctera des idées de recettes !
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div>
                   <Label htmlFor="ingredients" className="block text-sm font-medium text-foreground mb-1">
-                    Your Ingredients
+                    Vos ingrédients
                   </Label>
                   <Textarea
                     id="ingredients"
                     {...register("ingredients")}
-                    placeholder="e.g., chicken breast, broccoli, soy sauce, rice"
+                    placeholder="ex: blanc de poulet, brocoli, sauce soja, riz"
                     className="min-h-[100px] text-base"
                     aria-invalid={errors.ingredients ? "true" : "false"}
                   />
@@ -98,12 +98,12 @@ export default function AIPage() {
                   {isLoading ? (
                     <>
                       <Sparkles className="mr-2 h-5 w-5 animate-spin" />
-                      Conjuring Recipes...
+                      Préparation des recettes...
                     </>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-5 w-5" />
-                      Get Recipes
+                      Obtenir des recettes
                     </>
                   )}
                 </Button>
@@ -115,7 +115,7 @@ export default function AIPage() {
         </div>
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground border-t">
-        <p>&copy; {new Date().getFullYear()} AI Chef Simplified. Powered by Delicious AI.</p>
+        <p>&copy; {new Date().getFullYear()} Chef IA Simplifié. Propulsé par Genkit.</p>
       </footer>
     </div>
   );

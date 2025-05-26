@@ -9,7 +9,7 @@ export function AppHeader() {
         <Link href="/" className="flex items-center gap-2">
           <ChefHatIcon className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            AI Chef <span className="text-primary">Simplified</span>
+            Chef IA <span className="text-primary">Simplifié</span>
           </h1>
         </Link>
         {/* Navigation links can go here if needed */}
