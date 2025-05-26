@@ -16,12 +16,20 @@ const SuggestRecipesInputSchema = z.object({
 });
 export type SuggestRecipesInput = z.infer<typeof SuggestRecipesInputSchema>;
 
+const NutritionalInfoSchema = z.object({
+  calories: z.string().optional().describe('Calories estimées (par exemple, "environ 350 kcal").'),
+  protein: z.string().optional().describe('Protéines estimées (par exemple, "environ 30g").'),
+  carbs: z.string().optional().describe('Glucides estimés (par exemple, "environ 40g").'),
+  fat: z.string().optional().describe('Lipides estimés (par exemple, "environ 15g").')
+}).describe("Informations nutritionnelles estimées par portion.").optional();
+
 const SuggestRecipesOutputSchema = z.object({
   recipes: z
     .array(z.object({
       name: z.string().describe('The name of the recipe.'),
       ingredients: z.array(z.string()).describe('The ingredients required for the recipe.'),
       instructions: z.string().describe('The instructions for the recipe.'),
+      nutritionalInfo: NutritionalInfoSchema,
     }))
     .describe('A list of suggested recipes.'),
 });
@@ -46,6 +54,7 @@ Pour chaque recette :
     *   **Faciles à Comprendre :** Utilisez un langage clair et simple. Évitez le jargon trop technique.
     *   **Lisibles Visuellement :** Structurez les instructions pour faciliter la lecture rapide. Utilisez des étapes numérotées pour la séquence principale. Si une étape implique plusieurs actions, envisagez d'utiliser des puces (par exemple, « - Hacher les oignons », « - Émincer l'ail ») à l'intérieur de cette étape numérotée.
     *   **Orientées vers l'Action :** Commencez les étapes par des verbes d'action.
+3.  **Informations Nutritionnelles Estimées :** Pour chaque recette, fournissez une **estimation** des informations nutritionnelles par portion, si possible : calories, protéines, glucides et lipides. Indiquez clairement que ce sont des estimations. Si une information n'est pas disponible, omettez-la simplement.
 
 Ingrédients fournis par l'utilisateur : {{{ingredients}}}
 
@@ -55,6 +64,7 @@ Formatez votre réponse en tant qu'objet JSON avec un champ "recipes". Chaque ob
 - "name": Le nom de la recette (en français).
 - "ingredients": Un tableau de chaînes de caractères, listant UNIQUEMENT les ingrédients utilisés pour CETTE recette spécifique, tirés EXCLUSIVEMENT de la liste fournie par l'utilisateur : '{{{ingredients}}}'.
 - "instructions": Une chaîne de caractères contenant les instructions détaillées et bien formatées (en français).
+- "nutritionalInfo": Un objet optionnel avec les champs "calories", "protein", "carbs", "fat" (tous optionnels et de type string). Par exemple: { "calories": "environ 350 kcal", "protein": "environ 30g" }.
 `,
 });
 
@@ -69,4 +79,3 @@ const suggestRecipesFlow = ai.defineFlow(
     return output!;
   }
 );
-
