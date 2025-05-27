@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react"; 
-import type { Recipe, RecipeVariation, RecipeWithVariations } from "@/lib/types"; 
+import type { Recipe, RecipeVariation, RecipeWithVariations, SuggestIngredientSubstitutionInput, SuggestedSubstitute } from "@/lib/types"; 
 import Image from 'next/image';
 import {
   Accordion,
@@ -12,11 +12,24 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle as ShadcnCardTitle } from "@/components/ui/card"; 
-import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2, Megaphone, Clock3, Timer, Award } from "lucide-react"; 
+import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2, Megaphone, Clock3, Timer, Award, Target, CheckCircle, Replace, ChefHat } from "lucide-react"; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useToast } from "@/hooks/use-toast";
-import { getRecipeVariationsAction } from "@/app/actions"; 
+import { getRecipeVariationsAction, getIngredientSubstitutionAction } from "@/app/actions"; 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+
 
 interface RecipeDisplayProps {
   recipes: Recipe[]; 
@@ -35,6 +48,146 @@ const InfoItem: React.FC<{ icon: React.ElementType; label: string; value?: strin
   );
 };
 
+interface SubstitutionDialogProps {
+  recipe: Recipe;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function SubstitutionDialog({ recipe, isOpen, onClose }: SubstitutionDialogProps) {
+  const [selectedIngredient, setSelectedIngredient] = useState<string>("");
+  const [constraints, setConstraints] = useState<string>("");
+  const [isLoadingSubstitutions, setIsLoadingSubstitutions] = useState(false);
+  const [substitutionSuggestions, setSubstitutionSuggestions] = useState<SuggestedSubstitute[]>([]);
+  const [substitutionError, setSubstitutionError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    // Reset state when dialog opens or recipe changes
+    if (isOpen) {
+      setSelectedIngredient(recipe.ingredients[0] || "");
+      setConstraints("");
+      setSubstitutionSuggestions([]);
+      setSubstitutionError(null);
+    }
+  }, [isOpen, recipe]);
+
+  const handleFetchSubstitutions = async () => {
+    if (!selectedIngredient) {
+      toast({ title: "Erreur", description: "Veuillez sélectionner un ingrédient.", variant: "destructive" });
+      return;
+    }
+    setIsLoadingSubstitutions(true);
+    setSubstitutionSuggestions([]);
+    setSubstitutionError(null);
+
+    const input: SuggestIngredientSubstitutionInput = {
+      originalRecipeName: recipe.name,
+      ingredientToSubstitute: selectedIngredient,
+      originalIngredientsList: recipe.ingredients,
+      originalInstructions: recipe.instructions,
+      substitutionConstraints: constraints.trim() !== "" ? constraints : undefined,
+    };
+
+    const result = await getIngredientSubstitutionAction(input);
+    setIsLoadingSubstitutions(false);
+
+    if (result.error) {
+      setSubstitutionError(result.error);
+      toast({ title: "Erreur de Substitution", description: result.error, variant: "destructive" });
+    } else if (result.data && result.data.substitutions.length > 0) {
+      setSubstitutionSuggestions(result.data.substitutions);
+      toast({ title: "Substitutions Trouvées!", description: `L'IA a trouvé ${result.data.substitutions.length} idée(s) pour remplacer ${selectedIngredient}.` });
+    } else {
+      setSubstitutionError("L'IA n'a pas pu suggérer de substitutions pour cet ingrédient avec ces contraintes.");
+      toast({ title: "Aucune Substitution Trouvée", description: "L'IA n'a pas pu suggérer de substitutions pour cet ingrédient avec ces contraintes.", variant: "default" });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Replace className="h-6 w-6 text-primary" />
+            Conseiller en Substitution d'Ingrédients
+          </DialogTitle>
+          <DialogDescription>
+            Pour la recette : <span className="font-semibold text-foreground">{recipe.name}</span>.
+            Choisissez un ingrédient à remplacer et spécifiez des contraintes si besoin.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          <div>
+            <Label htmlFor="ingredient-select">Ingrédient à remplacer</Label>
+            <Select value={selectedIngredient} onValueChange={setSelectedIngredient}>
+              <SelectTrigger id="ingredient-select" className="w-full mt-1">
+                <SelectValue placeholder="Sélectionnez un ingrédient" />
+              </SelectTrigger>
+              <SelectContent>
+                {recipe.ingredients.map((ing, idx) => (
+                  <SelectItem key={idx} value={ing}>{ing}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="substitution-constraints">Contraintes (optionnel)</Label>
+            <Input
+              id="substitution-constraints"
+              value={constraints}
+              onChange={(e) => setConstraints(e.target.value)}
+              placeholder="ex: végétarien, sans gluten, moins épicé"
+              className="mt-1"
+            />
+          </div>
+          <Button onClick={handleFetchSubstitutions} disabled={isLoadingSubstitutions || !selectedIngredient} className="w-full">
+            {isLoadingSubstitutions ? (
+              <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Recherche de substitutions...</>
+            ) : (
+              <> <ChefHat className="mr-2 h-4 w-4" /> Obtenir des suggestions </>
+            )}
+          </Button>
+        </div>
+
+        {isLoadingSubstitutions && (
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-5 w-1/3 rounded" />
+            <Skeleton className="h-4 w-full rounded" />
+            <Skeleton className="h-4 w-5/6 rounded" />
+          </div>
+        )}
+
+        {substitutionError && !isLoadingSubstitutions && (
+          <div className="mt-4 p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <p>{substitutionError}</p>
+          </div>
+        )}
+
+        {substitutionSuggestions.length > 0 && !isLoadingSubstitutions && (
+          <div className="mt-4 space-y-3 max-h-60 overflow-y-auto pr-2">
+            <h4 className="text-md font-semibold text-foreground">Suggestions de l'IA :</h4>
+            {substitutionSuggestions.map((sub, idx) => (
+              <Card key={idx} className="bg-muted/50 p-3">
+                <p className="font-semibold text-primary">{sub.substitute}</p>
+                <p className="text-xs text-muted-foreground mt-1">{sub.notes}</p>
+                {sub.confidence && <p className="text-xs text-accent mt-1">Confiance : {sub.confidence}</p>}
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <DialogFooter className="mt-6">
+          <DialogClose asChild>
+            <Button variant="outline" onClick={onClose}>Fermer</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: RecipeDisplayProps) {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
@@ -43,6 +196,9 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
   const [recipesWithVariations, setRecipesWithVariations] = useState<RecipeWithVariations[]>(
     initialRecipes.map(r => ({...r, variations: [], isLoadingVariations: false, variationsError: null}))
   );
+
+  const [isSubstitutionDialogOpen, setIsSubstitutionDialogOpen] = useState(false);
+  const [currentRecipeForSubstitution, setCurrentRecipeForSubstitution] = useState<Recipe | null>(null);
 
   React.useEffect(() => {
     setRecipesWithVariations(initialRecipes.map(r => ({
@@ -119,6 +275,11 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
        setRecipesWithVariations(prev => prev.map(r => r.name === recipeName ? {...r, isLoadingVariations: false, variationsError: "Aucune variation n'a été trouvée." } : r));
     }
   };
+  
+  const openSubstitutionModal = (recipe: Recipe) => {
+    setCurrentRecipeForSubstitution(recipe);
+    setIsSubstitutionDialogOpen(true);
+  };
 
 
   if (isLoading) {
@@ -159,7 +320,6 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
     );
   }
   
-  // Gérer les cas où l'IA renvoie un message spécifique (pas de recette, erreur IA)
   if (initialRecipes.length === 1 && (initialRecipes[0].name === "Aucune recette trouvée" || initialRecipes[0].name === "Erreur de l'IA")) {
     return (
       <div className="mt-8 p-6 border border-border rounded-lg bg-card text-card-foreground shadow">
@@ -167,7 +327,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
           <Megaphone className="h-8 w-8 text-primary" />
           <h3 className="text-xl font-semibold">{initialRecipes[0].name}</h3>
         </div>
-        <p className="text-muted-foreground">{initialRecipes[0].notesOnAdaptation}</p>
+        <p className="text-muted-foreground">{initialRecipes[0].notesOnAdaptation || initialRecipes[0].goalAlignment}</p>
       </div>
     );
   }
@@ -178,6 +338,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
 
 
   return (
+    <>
     <Accordion type="single" collapsible className="w-full space-y-4 mt-8">
       {recipesWithVariations.map((recipe, index) => (
         <AccordionItem value={`recipe-${index}`} key={recipe.name + index} className="border border-border bg-card rounded-lg shadow-sm overflow-hidden">
@@ -203,7 +364,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                   />
                 </div>
               ) : (
-                 recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" && // Ne pas montrer l'espace réservé pour les messages d'erreur
+                 recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" &&
                 <div className="mb-4 flex flex-col items-center justify-center h-40 bg-muted/50 rounded-md border border-dashed border-border">
                   <ImageOff className="h-12 w-12 text-muted-foreground mb-3"/>
                   <p className="text-md text-muted-foreground">Aperçu non disponible</p>
@@ -224,10 +385,18 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
 
               {recipe.notesOnAdaptation && (
                 <div className="p-3 border border-accent/50 rounded-md bg-accent/10 text-accent-foreground flex items-start gap-2 text-sm">
-                  <Megaphone className="h-5 w-5 mt-0.5 shrink-0" />
+                  <Megaphone className="h-5 w-5 mt-0.5 shrink-0 text-accent" />
                   <p>{recipe.notesOnAdaptation}</p>
                 </div>
               )}
+
+              {recipe.goalAlignment && (
+                <div className="p-3 border border-primary/50 rounded-md bg-primary/10 text-primary-foreground flex items-start gap-2 text-sm">
+                  <CheckCircle className="h-5 w-5 mt-0.5 shrink-0 text-primary" />
+                  <p><strong className="text-primary">Alignement aux objectifs :</strong> {recipe.goalAlignment}</p>
+                </div>
+              )}
+
 
               {(recipe.estimatedPreparationTime || recipe.estimatedCookingTime || recipe.difficultyLevel) && (
                  <div className="pt-4 border-t border-border">
@@ -235,7 +404,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                     <Info className="h-5 w-5 text-primary" />
                     Détails de la Recette
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     <InfoItem icon={Clock3} label="Préparation" value={recipe.estimatedPreparationTime} srOnlyLabel="Temps de préparation estimé" />
                     <InfoItem icon={Timer} label="Cuisson" value={recipe.estimatedCookingTime} srOnlyLabel="Temps de cuisson estimé" />
                     <InfoItem icon={Award} label="Difficulté" value={recipe.difficultyLevel} srOnlyLabel="Niveau de difficulté estimé" />
@@ -246,14 +415,16 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
               {recipe.nutritionalInfo && (Object.values(recipe.nutritionalInfo).some(val => val)) && (
                 <div className="pt-4 border-t border-border">
                   <h3 className="text-md font-medium mb-3 flex items-center gap-2 text-foreground">
-                    <Info className="h-5 w-5 text-primary" />
-                    Informations Nutritionnelles (Estimations)
+                    <Target className="h-5 w-5 text-primary" />
+                    Informations Nutritionnelles (Estimations par portion)
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <InfoItem icon={Flame} label="Calories" value={recipe.nutritionalInfo.calories} />
                     <InfoItem icon={Beef} label="Protéines" value={recipe.nutritionalInfo.protein} />
                     <InfoItem icon={Wheat} label="Glucides" value={recipe.nutritionalInfo.carbs} />
                     <InfoItem icon={Droplet} label="Lipides" value={recipe.nutritionalInfo.fat} />
+                    {recipe.nutritionalInfo.fiber && <InfoItem icon={ListChecks} label="Fibres" value={recipe.nutritionalInfo.fiber} />}
+                    {/* On pourrait ajouter d'autres nutriments ici (sucre, sodium) si l'IA les fournit */}
                   </div>
                 </div>
               )}
@@ -310,7 +481,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
 
 
               { recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" && (
-                <div className="pt-4 border-t border-border">
+                <div className="pt-6 border-t border-border space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-start sm:gap-3">
                   <Button 
                     variant="secondary" 
                     onClick={() => handleSuggestVariations(recipe.name)} 
@@ -318,66 +489,69 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                     className="w-full sm:w-auto"
                   >
                     {recipe.isLoadingVariations ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Recherche de variations...
-                      </>
+                      <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Recherche ... </>
                     ) : (
-                      <>
-                        <Lightbulb className="mr-2 h-4 w-4" />
-                        Suggérer des Variations
-                      </>
+                      <> <Lightbulb className="mr-2 h-4 w-4" /> Suggérer des Variations </>
                     )}
                   </Button>
 
-                  {recipe.isLoadingVariations && (
-                    <div className="mt-4 space-y-3">
-                      <Skeleton className="h-6 w-1/2 rounded" />
-                      <Skeleton className="h-4 w-3/4 rounded" />
-                      <Skeleton className="h-4 w-full rounded" />
-                    </div>
-                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => openSubstitutionModal(recipe)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Replace className="mr-2 h-4 w-4" /> Idées de Substitution
+                  </Button>
 
-                  {recipe.variationsError && (
-                    <div className="mt-4 p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
-                      <AlertCircle className="h-4 w-4" />
-                      <p>{recipe.variationsError}</p>
-                    </div>
-                  )}
-
-                  {recipe.variations && recipe.variations.length > 0 && !recipe.isLoadingVariations && (
-                    <div className="mt-6 space-y-4">
-                      <h4 className="text-base font-medium text-foreground">Idées de Variations :</h4>
-                      {recipe.variations.map((variation, vIndex) => (
-                        <Card key={vIndex} className="bg-muted/50 border-border shadow-sm">
-                          <CardHeader className="pb-3">
-                            <ShadcnCardTitle className="text-md text-primary">{variation.variationName}</ShadcnCardTitle>
-                          </CardHeader>
-                          <CardContent className="text-sm space-y-2">
-                            <p className="text-muted-foreground italic">{variation.description}</p>
-                            {variation.changesToIngredients && variation.changesToIngredients.length > 0 && (
-                              <div>
-                                <strong className="text-foreground">Changements d'ingrédients :</strong>
-                                <ul className="list-disc list-inside ml-4 mt-1 text-muted-foreground">
-                                  {variation.changesToIngredients.map((change, ciIndex) => (
-                                    <li key={ciIndex}>{change}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {variation.changesToInstructions && (
-                              <div>
-                                <strong className="text-foreground">Changements d'instructions :</strong>
-                                <p className="mt-1 text-muted-foreground whitespace-pre-line">{variation.changesToInstructions}</p>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
+
+                {recipe.isLoadingVariations && (
+                  <div className="mt-4 space-y-3">
+                    <Skeleton className="h-6 w-1/2 rounded" />
+                    <Skeleton className="h-4 w-3/4 rounded" />
+                    <Skeleton className="h-4 w-full rounded" />
+                  </div>
+                )}
+
+                {recipe.variationsError && (
+                  <div className="mt-4 p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    <p>{recipe.variationsError}</p>
+                  </div>
+                )}
+
+                {recipe.variations && recipe.variations.length > 0 && !recipe.isLoadingVariations && (
+                  <div className="mt-6 space-y-4">
+                    <h4 className="text-base font-medium text-foreground">Idées de Variations :</h4>
+                    {recipe.variations.map((variation, vIndex) => (
+                      <Card key={vIndex} className="bg-muted/50 border-border shadow-sm">
+                        <CardHeader className="pb-3">
+                          <ShadcnCardTitle className="text-md text-primary">{variation.variationName}</ShadcnCardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm space-y-2">
+                          <p className="text-muted-foreground italic">{variation.description}</p>
+                          {variation.changesToIngredients && variation.changesToIngredients.length > 0 && (
+                            <div>
+                              <strong className="text-foreground">Changements d'ingrédients :</strong>
+                              <ul className="list-disc list-inside ml-4 mt-1 text-muted-foreground">
+                                {variation.changesToIngredients.map((change, ciIndex) => (
+                                  <li key={ciIndex}>{change}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {variation.changesToInstructions && (
+                            <div>
+                              <strong className="text-foreground">Changements d'instructions :</strong>
+                              <p className="mt-1 text-muted-foreground whitespace-pre-line">{variation.changesToInstructions}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
 
 
             </div>
@@ -385,6 +559,14 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
         </AccordionItem>
       ))}
     </Accordion>
+    {currentRecipeForSubstitution && (
+        <SubstitutionDialog
+          recipe={currentRecipeForSubstitution}
+          isOpen={isSubstitutionDialogOpen}
+          onClose={() => setIsSubstitutionDialogOpen(false)}
+        />
+      )}
+    </>
   );
 }
 

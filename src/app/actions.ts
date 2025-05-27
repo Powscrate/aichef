@@ -5,9 +5,10 @@ import { suggestRecipes, type SuggestRecipesInput, type SuggestRecipesOutput as 
 import { generateRecipeImage, type GenerateRecipeImageInput } from "@/ai/flows/generate-recipe-image-flow";
 import { suggestRecipeVariations, type SuggestRecipeVariationsInput, type SuggestRecipeVariationsOutput as SuggestRecipeVariationsGenkitOutput } from "@/ai/flows/suggest-recipe-variations-flow";
 import { getDailyCookingTip, type GetDailyCookingTipOutput } from "@/ai/flows/get-daily-cooking-tip-flow";
+import { suggestIngredientSubstitution, type SuggestIngredientSubstitutionInput, type SuggestIngredientSubstitutionOutput as SuggestIngredientSubstitutionGenkitOutput } from "@/ai/flows/suggest-ingredient-substitution-flow";
 
 
-import type { Recipe, SuggestRecipeVariationsOutput } from "@/lib/types";
+import type { Recipe, SuggestRecipeVariationsOutput, SuggestIngredientSubstitutionOutput } from "@/lib/types";
 
 interface RecipeActionResult {
   data: Recipe[] | null;
@@ -17,7 +18,9 @@ interface RecipeActionResult {
 export async function getRecipesAction(
   ingredients: string,
   dietaryPreferences?: string[],
-  allergies?: string
+  allergies?: string,
+  targetCalories?: string,
+  macronutrientProfile?: string
 ): Promise<RecipeActionResult> {
   if (!ingredients || ingredients.trim() === "") {
     return { data: null, error: "Veuillez entrer quelques ingrédients." };
@@ -28,6 +31,8 @@ export async function getRecipesAction(
       ingredients,
       dietaryPreferences: dietaryPreferences && dietaryPreferences.length > 0 ? dietaryPreferences : undefined,
       allergies: allergies && allergies.trim() !== "" ? allergies : undefined,
+      targetCalories: targetCalories && targetCalories.trim() !== "" ? targetCalories : undefined,
+      macronutrientProfile: macronutrientProfile && macronutrientProfile.trim() !== "" ? macronutrientProfile : undefined,
     };
     
     const recipeTextResult: SuggestRecipesGenkitOutput = await suggestRecipes(recipeTextInput);
@@ -36,7 +41,6 @@ export async function getRecipesAction(
       return { data: null, error: "Impossible de générer des recettes. L'IA a renvoyé un format inattendu." };
     }
 
-    // Filter out placeholder/error recipes before image generation
     const validRecipesBase = recipeTextResult.recipes.filter(
       recipe => recipe.name !== "Erreur de l'IA" && recipe.name !== "Aucune recette trouvée" && recipe.ingredients.length > 0
     );
@@ -48,22 +52,20 @@ export async function getRecipesAction(
         return { ...recipeBase, imageUrl };
       } catch (imageError) {
         console.error(`Erreur lors de la génération de l'image pour la recette "${recipeBase.name}":`, imageError);
-        return { ...recipeBase, imageUrl: undefined }; // Garder la recette même si l'image échoue
+        return { ...recipeBase, imageUrl: undefined }; 
       }
     });
 
     const recipesWithImages: Recipe[] = await Promise.all(recipesWithImagesPromises);
 
-    // If the original response only contained error/placeholder recipes, reflect that.
     if (validRecipesBase.length === 0 && recipeTextResult.recipes.length > 0) {
-        const placeholderMessage = recipeTextResult.recipes[0].notesOnAdaptation || "Aucune recette compatible trouvée.";
-        // Afficher ce message à l'utilisateur via le mécanisme d'erreur ou une recette spéciale
+        const placeholderMessage = recipeTextResult.recipes[0].notesOnAdaptation || recipeTextResult.recipes[0].goalAlignment || "Aucune recette compatible trouvée.";
          return { data: [{
-            name: recipeTextResult.recipes[0].name, // "Aucune recette trouvée" ou "Erreur de l'IA"
+            name: recipeTextResult.recipes[0].name, 
             ingredients: [],
             instructions: "",
             notesOnAdaptation: placeholderMessage,
-            imageUrl: undefined // Pas d'image pour les placeholders
+            imageUrl: undefined 
         }], error: null };
     }
 
@@ -126,6 +128,33 @@ export async function getDailyCookingTipAction(): Promise<DailyTipActionResult> 
   } catch (e) {
     console.error("Erreur dans getDailyCookingTipAction:", e);
     const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la récupération de l'astuce du jour.";
+    return { data: null, error: errorMessage };
+  }
+}
+
+
+interface SubstitutionActionResult {
+  data: SuggestIngredientSubstitutionOutput | null;
+  error: string | null;
+}
+
+export async function getIngredientSubstitutionAction(
+  input: SuggestIngredientSubstitutionInput
+): Promise<SubstitutionActionResult> {
+  if (!input.originalRecipeName || !input.ingredientToSubstitute || input.originalIngredientsList.length === 0 || !input.originalInstructions) {
+    return { data: null, error: "Les détails de la recette et l'ingrédient à substituer sont nécessaires." };
+  }
+
+  try {
+    const result: SuggestIngredientSubstitutionGenkitOutput = await suggestIngredientSubstitution(input);
+    if (!result || !result.substitutions || result.substitutions.length === 0) {
+      return { data: null, error: "L'IA n'a pas pu suggérer de substitutions pour cet ingrédient dans cette recette." };
+    }
+    // Le type est déjà compatible grâce à l'inférence Zod et l'alias dans src/lib/types.ts
+    return { data: result, error: null };
+  } catch (e) {
+    console.error(`Erreur dans getIngredientSubstitutionAction pour "${input.ingredientToSubstitute}" dans "${input.originalRecipeName}":`, e);
+    const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la suggestion de substitutions.";
     return { data: null, error: errorMessage };
   }
 }

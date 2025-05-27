@@ -1,9 +1,10 @@
+
 // src/ai/flows/suggest-recipes.ts
 'use server';
 /**
- * @fileOverview Recipe suggestion flow based on a list of ingredients, dietary preferences, and allergies.
+ * @fileOverview Recipe suggestion flow based on a list of ingredients, dietary preferences, allergies, and nutritional goals.
  *
- * - suggestRecipes - A function that suggests recipes based on ingredients, preferences, and allergies.
+ * - suggestRecipes - A function that suggests recipes.
  * - SuggestRecipesInput - The input type for the suggestRecipes function.
  * - SuggestRecipesOutput - The return type for the suggestRecipes function.
  */
@@ -15,6 +16,8 @@ const SuggestRecipesInputSchema = z.object({
   ingredients: z.string().describe('A comma-separated list of ingredients.'),
   dietaryPreferences: z.array(z.string()).optional().describe('An optional list of dietary preferences (e.g., "végétarien", "vegan", "sans gluten").'),
   allergies: z.string().optional().describe('An optional comma-separated string listing allergies (e.g., "arachides, lactose").'),
+  targetCalories: z.string().optional().describe('Optional target calorie count per serving (e.g., "environ 500 kcal", "moins de 400 kcal").'),
+  macronutrientProfile: z.string().optional().describe('Optional desired macronutrient profile (e.g., "riche en protéines, faible en glucides", "équilibré", "riche en fibres").'),
 });
 export type SuggestRecipesInput = z.infer<typeof SuggestRecipesInputSchema>;
 
@@ -22,8 +25,11 @@ const NutritionalInfoSchema = z.object({
   calories: z.string().optional().describe('Calories estimées (par exemple, "environ 350 kcal").'),
   protein: z.string().optional().describe('Protéines estimées (par exemple, "environ 30g").'),
   carbs: z.string().optional().describe('Glucides estimés (par exemple, "environ 40g").'),
-  fat: z.string().optional().describe('Lipides estimés (par exemple, "environ 15g").')
-}).describe("Informations nutritionnelles estimées par portion.").optional();
+  fat: z.string().optional().describe('Lipides estimés (par exemple, "environ 15g").'),
+  fiber: z.string().optional().describe('Fibres estimées (par exemple, "environ 5g").'),
+  sugar: z.string().optional().describe('Sucres estimés (par exemple, "environ 10g").'),
+  sodium: z.string().optional().describe('Sodium estimé (par exemple, "environ 500mg").'),
+}).describe("Informations nutritionnelles estimées et détaillées par portion.").optional();
 
 const SuggestRecipesOutputSchema = z.object({
   recipes: z
@@ -36,6 +42,7 @@ const SuggestRecipesOutputSchema = z.object({
       estimatedPreparationTime: z.string().optional().describe("Temps de préparation estimé (ex: 'environ 20 minutes', '10-15 minutes')."),
       estimatedCookingTime: z.string().optional().describe("Temps de cuisson estimé, dérivé de l'analyse des instructions (ex: 'environ 30 minutes', '45 min - 1 heure')."),
       difficultyLevel: z.string().optional().describe("Niveau de difficulté estimé (ex: 'Facile', 'Moyen', 'Difficile') basé sur les ingrédients, les instructions et le temps total."),
+      goalAlignment: z.string().optional().describe("Explication de la manière dont la recette correspond aux objectifs nutritionnels spécifiés par l'utilisateur (targetCalories, macronutrientProfile). Si aucun objectif n'est spécifié, ce champ peut être omis ou indiquer une adéquation générale."),
     }))
     .describe('A list of suggested recipes. If no recipes can be made due to constraints, this list might be empty and a note provided in notesOnAdaptation.'),
 });
@@ -49,7 +56,7 @@ const prompt = ai.definePrompt({
   name: 'suggestRecipesPrompt',
   input: {schema: SuggestRecipesInputSchema},
   output: {schema: SuggestRecipesOutputSchema},
-  prompt: `Vous êtes un chef cuisinier de renommée mondiale, expert dans la création de recettes claires, inspirantes et adaptées aux besoins spécifiques. Votre tâche est de suggérer des recettes basées sur la liste d'ingrédients fournie par l'utilisateur, en tenant compte de ses préférences alimentaires et allergies.
+  prompt: `Vous êtes un chef cuisinier et nutritionniste expert, capable de créer des recettes délicieuses, saines et parfaitement adaptées aux besoins des utilisateurs. Votre mission est de suggérer des recettes basées sur les ingrédients fournis, en respectant scrupuleusement les préférences alimentaires, allergies, et objectifs nutritionnels spécifiés.
 
 **INSTRUCTION CRITIQUE : Vous ne DEVEZ PAS, en aucun cas, ajouter ou suggérer des ingrédients qui ne sont pas explicitement listés par l'utilisateur dans la liste '{{{ingredients}}}'. Les recettes doivent exclusivement utiliser ces ingrédients fournis.**
 
@@ -66,37 +73,42 @@ Préférences alimentaires spécifiques à respecter :
 Allergies ou restrictions à prendre impérativement en compte (ne pas inclure ces éléments) : {{{allergies}}}
 {{/if}}
 
-Pour chaque recette :
-1.  Tous les noms de recettes, les ingrédients (qui doivent être un sous-ensemble de la liste de l'utilisateur) et les instructions doivent être en **français**.
-2.  Les **Instructions** doivent être :
-    *   **Complètes et Détaillées :** Fournissez un guidage étape par étape, ne laissant aucune place à l'ambiguïté. Supposez que l'utilisateur peut être un cuisinier novice.
-    *   **Faciles à Comprendre :** Utilisez un langage clair et simple. Évitez le jargon trop technique.
-    *   **Lisibles Visuellement :** Structurez les instructions pour faciliter la lecture rapide. Utilisez des étapes numérotées pour la séquence principale. Si une étape implique plusieurs actions, envisagez d'utiliser des puces (par exemple, « - Hacher les oignons », « - Émincer l'ail ») à l'intérieur de cette étape numérotée.
-    *   **Orientées vers l'Action :** Commencez les étapes par des verbes d'action.
-3.  **Informations Nutritionnelles Estimées :** Pour chaque recette, fournissez une **estimation** des informations nutritionnelles par portion, si possible : calories, protéines, glucides et lipides. Indiquez clairement que ce sont des estimations. Si une information n'est pas disponible, omettez-la simplement.
-4.  **Estimations des Temps :** 
-    *   Fournissez une estimation pour le 'estimatedPreparationTime' (temps de préparation). Ce temps doit être réaliste et exprimé de manière claire (ex: "20 minutes", "10-15 min").
-    *   Pour le 'estimatedCookingTime' (temps de cuisson), **analysez attentivement les étapes de cuisson dans les 'instructions'** pour déduire une estimation réaliste. Si les instructions mentionnent des durées spécifiques (ex: "mijoter pendant 30 minutes", "cuire au four 20 minutes"), utilisez-les. Sinon, basez-vous sur les actions de cuisson (ex: "faire dorer", "jusqu'à ce que ce soit tendre") pour fournir une estimation. Exprimez-le clairement (ex: "environ 30 minutes", "45 min - 1 heure"). Si une estimation fiable n'est pas possible même après analyse, omettez le champ.
-5.  **Niveau de Difficulté Estimé :** Fournissez un 'difficultyLevel' (ex: 'Facile', 'Moyen', 'Difficile'). Ce niveau doit être basé sur une évaluation globale de la recette, considérant le nombre d'ingrédients à gérer, la complexité des techniques de préparation et de cuisson décrites dans les 'instructions', et le temps total estimé.
-6.  **Adaptation aux Préférences et Allergies :**
-    *   Si des préférences alimentaires (ex: végétarien, vegan) sont spécifiées, adaptez les recettes pour qu'elles respectent scrupuleusement ces préférences en utilisant UNIQUEMENT les ingrédients fournis.
-    *   Si des allergies sont listées, assurez-vous que les recettes ne contiennent AUCUN des allergènes mentionnés, en utilisant UNIQUEMENT les ingrédients fournis.
-    *   **Cas de Conflit Important :** Si les ingrédients fournis par l'utilisateur et les préférences/allergies sont contradictoires (par exemple, "poulet" comme ingrédient et "végétarien" comme préférence), vous devez impérativement le signaler dans le champ 'notesOnAdaptation' de la recette concernée (ou pour une note globale si aucune recette n'est possible). Ne proposez PAS de recette qui viole ces contraintes. Vous pouvez :
-        a) Proposer une recette qui utilise un sous-ensemble compatible des ingrédients fournis.
-        b) Indiquer clairement dans 'notesOnAdaptation' qu'aucune recette compatible ne peut être élaborée avec les ingrédients fournis et les contraintes spécifiées.
-    *   Si une adaptation a été faite (par exemple, une recette initialement non-végétarienne a été rendue végétarienne en utilisant uniquement les ingrédients fournis compatibles), mentionnez-le brièvement dans 'notesOnAdaptation'.
+{{#if targetCalories}}
+Objectif calorique par portion : {{{targetCalories}}}
+{{/if}}
 
-Suggérez au moins une à trois recettes si possible avec les ingrédients donnés et les contraintes. Si aucune recette n'est possible, le tableau "recipes" peut être vide, mais expliquez pourquoi dans 'notesOnAdaptation' sur un objet recette "fictif" ou une note globale.
+{{#if macronutrientProfile}}
+Profil macronutritionnel souhaité : {{{macronutrientProfile}}}
+{{/if}}
 
-Formatez votre réponse en tant qu'objet JSON avec un champ "recipes". Chaque objet recette dans ce tableau doit avoir les champs suivants :
-- "name": Le nom de la recette (en français).
-- "ingredients": Un tableau de chaînes de caractères, listant UNIQUEMENT les ingrédients utilisés pour CETTE recette spécifique, tirés EXCLUSIVEMENT de la liste fournie par l'utilisateur : '{{{ingredients}}}' et compatibles avec les contraintes.
-- "instructions": Une chaîne de caractères contenant les instructions détaillées et bien formatées (en français).
-- "nutritionalInfo": Un objet optionnel avec les champs "calories", "protein", "carbs", "fat" (tous optionnels et de type string).
-- "estimatedPreparationTime": Une chaîne optionnelle (ex: "environ 20 minutes").
-- "estimatedCookingTime": Une chaîne optionnelle (ex: "environ 45 minutes").
-- "difficultyLevel": Une chaîne optionnelle (ex: "Facile", "Moyen", "Difficile").
-- "notesOnAdaptation": Une chaîne optionnelle pour les notes sur l'adaptation ou les conflits.
+Pour chaque recette suggérée :
+1.  **Langue :** Tous les noms de recettes, listes d'ingrédients (exclusivement tirés de '{{{ingredients}}}') et instructions doivent être en **français**.
+2.  **Instructions Détaillées et Lisibles :**
+    *   **Complètes :** Guidage étape par étape, précis, adapté même aux novices.
+    *   **Claires :** Langage simple, sans jargon excessif.
+    *   **Structurées :** Étapes numérotées. Pour les étapes complexes, utilisez des sous-puces.
+    *   **Orientées Action :** Commencez les étapes par des verbes.
+3.  **Informations Nutritionnelles Estimées (Détaillées si possible) :**
+    *   Fournissez une **estimation** des informations nutritionnelles par portion : calories, protéines, glucides, lipides. Si possible, ajoutez des estimations pour les fibres, sucres, et sodium.
+    *   Indiquez clairement que ce sont des estimations. Omettez les champs si une estimation fiable est impossible.
+4.  **Estimations des Temps :**
+    *   \`estimatedPreparationTime\` : Réaliste et clair (ex: "20 minutes").
+    *   \`estimatedCookingTime\` : **Analysez attentivement les 'instructions'** pour déduire une estimation réaliste (ex: "environ 30 minutes", "45 min - 1 heure"). Si aucune cuisson n'est requise (ex: salade), indiquez "Aucun" ou "N/A".
+5.  **Niveau de Difficulté Estimé (\`difficultyLevel\`) :**
+    *   Évaluez la difficulté (Facile, Moyen, Difficile) en considérant la complexité des techniques, le nombre d'ingrédients à gérer, et le temps total.
+6.  **Adaptation et Alignement aux Objectifs :**
+    *   Respectez scrupuleusement les \`dietaryPreferences\` et \`allergies\` en utilisant UNIQUEMENT les ingrédients fournis.
+    *   **\`goalAlignment\` :**
+        *   Si des \`targetCalories\` ou \`macronutrientProfile\` sont spécifiés, expliquez clairement et brièvement (1-2 phrases) dans ce champ comment la recette proposée s'aligne (ou tente de s'aligner) avec ces objectifs, en se basant sur vos estimations nutritionnelles. Par exemple: "Cette recette est estimée à X calories, ce qui correspond bien à votre objectif de Y calories. Son profil riche en Z et pauvre en W s'aligne avec votre demande."
+        *   Si la recette ne peut pas parfaitement atteindre l'objectif avec les ingrédients fournis, expliquez pourquoi et comment elle s'en approche au mieux.
+        *   Si aucun objectif nutritionnel n'est spécifié par l'utilisateur, ce champ peut être omis ou contenir une note générale sur la salubrité de la recette.
+    *   **\`notesOnAdaptation\` :**
+        *   Utilisez ce champ pour toute note importante sur l'adaptation de la recette (ex: si une recette a été rendue végétarienne, ou si un ingrédient allergène a été omis, impactant potentiellement le plat).
+        *   **Conflits :** Si les ingrédients fournis et les contraintes (préférences, allergies, objectifs nutritionnels) sont fortement contradictoires, signalez-le clairement ici. Proposez une recette qui utilise un sous-ensemble compatible des ingrédients ou indiquez qu'aucune recette viable ne peut être élaborée.
+
+Suggérez 1 à 3 recettes. Si aucune recette n'est possible en raison des contraintes, le tableau "recipes" peut être vide, mais fournissez une explication dans 'notesOnAdaptation' d'un objet recette "fictif" ou une note globale.
+
+Formatez votre réponse en tant qu'objet JSON avec un champ "recipes". Chaque objet recette doit avoir les champs décrits ci-dessus.
 `,
 });
 
@@ -109,7 +121,6 @@ const suggestRecipesFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
     if (!output) {
-      // Gérer le cas où l'IA ne renvoie rien ou une structure inattendue
       return { recipes: [{
         name: "Erreur de l'IA",
         ingredients: [],
@@ -117,8 +128,7 @@ const suggestRecipesFlow = ai.defineFlow(
         notesOnAdaptation: "L'IA n'a pas pu générer de suggestion de recette ou la réponse était malformée."
       }]};
     }
-    // Si l'IA renvoie un tableau vide mais aucune note, ajouter une note générique.
-    if (output.recipes.length === 0 && !output.recipes.some(r => r.notesOnAdaptation)) {
+    if (output.recipes.length === 0 && !output.recipes.some(r => r.notesOnAdaptation || r.goalAlignment)) {
         return { recipes: [{
             name: "Aucune recette trouvée",
             ingredients: [],

@@ -24,7 +24,7 @@ import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { getRecipesAction, getDailyCookingTipAction } from "./actions";
 import type { Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Settings2, Lightbulb, Info } from "lucide-react";
+import { Sparkles, Settings2, Lightbulb, Info, Target, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
@@ -33,6 +33,8 @@ const formSchema = z.object({
   isVegan: z.boolean().optional(),
   isGlutenFree: z.boolean().optional(),
   allergies: z.string().optional(),
+  targetCalories: z.string().optional(),
+  macronutrientProfile: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -68,9 +70,8 @@ export default function AIPage() {
           localStorage.setItem(DAILY_TIP_STORAGE_KEY, result.data);
           localStorage.setItem(DAILY_TIP_DATE_STORAGE_KEY, today);
         } else if (result.error) {
-          // Ne pas afficher d'erreur à l'utilisateur pour une fonctionnalité secondaire
           console.error("Erreur de l'astuce du jour:", result.error);
-          setDailyTip(null); // Ou une astuce par défaut
+          setDailyTip(null); 
         }
         setIsLoadingTip(false);
       }
@@ -92,6 +93,8 @@ export default function AIPage() {
       isVegan: false,
       isGlutenFree: false,
       allergies: "",
+      targetCalories: "",
+      macronutrientProfile: "",
     }
   });
 
@@ -113,7 +116,13 @@ export default function AIPage() {
     if (data.isVegan) dietaryPreferences.push("vegan");
     if (data.isGlutenFree) dietaryPreferences.push("sans gluten");
 
-    const result = await getRecipesAction(data.ingredients, dietaryPreferences, data.allergies);
+    const result = await getRecipesAction(
+      data.ingredients, 
+      dietaryPreferences, 
+      data.allergies,
+      data.targetCalories,
+      data.macronutrientProfile
+    );
 
     setIsLoading(false);
     if (result.error) {
@@ -200,11 +209,12 @@ export default function AIPage() {
                       <AccordionTrigger className="text-sm font-medium text-foreground hover:no-underline py-2">
                         <div className="flex items-center">
                           <Settings2 className="h-5 w-5 mr-2 text-primary" />
-                          Préférences et Restrictions (Optionnel)
+                          Préférences, Restrictions & Objectifs (Optionnel)
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pt-4 space-y-4">
                         <div className="space-y-3">
+                          <Label className="text-xs font-medium text-foreground">Restrictions Alimentaires</Label>
                           <div className="flex items-center space-x-2">
                             <Checkbox id="isVegetarian" {...register("isVegetarian")} disabled={isVegan} />
                             <Label htmlFor="isVegetarian" className="text-sm font-normal text-muted-foreground">Végétarien</Label>
@@ -228,6 +238,35 @@ export default function AIPage() {
                             placeholder="ex: fruits à coque, soja"
                             className="text-sm bg-input border-border focus:ring-primary"
                           />
+                        </div>
+                        <div className="pt-3 border-t border-border">
+                          <Label className="text-xs font-medium text-foreground">Objectifs Nutritionnels</Label>
+                          <div className="mt-2 space-y-3">
+                             <div>
+                                <Label htmlFor="targetCalories" className="block text-xs font-medium text-muted-foreground mb-1 flex items-center">
+                                  <Target className="h-4 w-4 mr-1 text-primary/80" />
+                                  Calories cibles par portion
+                                </Label>
+                                <Input
+                                  id="targetCalories"
+                                  {...register("targetCalories")}
+                                  placeholder="ex: 500 kcal, < 400 kcal"
+                                  className="text-sm bg-input border-border focus:ring-primary"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="macronutrientProfile" className="block text-xs font-medium text-muted-foreground mb-1 flex items-center">
+                                   <BarChart3 className="h-4 w-4 mr-1 text-primary/80" />
+                                  Profil macronutritionnel souhaité
+                                </Label>
+                                <Input
+                                  id="macronutrientProfile"
+                                  {...register("macronutrientProfile")}
+                                  placeholder="ex: riche en protéines, faible en glucides"
+                                  className="text-sm bg-input border-border focus:ring-primary"
+                                />
+                              </div>
+                          </div>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
