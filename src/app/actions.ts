@@ -4,6 +4,8 @@
 import { suggestRecipes, type SuggestRecipesInput, type SuggestRecipesOutput as SuggestRecipesGenkitOutput } from "@/ai/flows/suggest-recipes";
 import { generateRecipeImage, type GenerateRecipeImageInput } from "@/ai/flows/generate-recipe-image-flow";
 import { suggestRecipeVariations, type SuggestRecipeVariationsInput, type SuggestRecipeVariationsOutput as SuggestRecipeVariationsGenkitOutput } from "@/ai/flows/suggest-recipe-variations-flow";
+import { getDailyCookingTip, type GetDailyCookingTipOutput } from "@/ai/flows/get-daily-cooking-tip-flow";
+
 
 import type { Recipe, SuggestRecipeVariationsOutput } from "@/lib/types";
 
@@ -105,6 +107,25 @@ export async function getRecipeVariationsAction(
   } catch (e) {
     console.error(`Erreur dans getRecipeVariationsAction pour "${recipeName}":`, e);
     const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la suggestion de variations.";
+    return { data: null, error: errorMessage };
+  }
+}
+
+interface DailyTipActionResult {
+  data: string | null;
+  error: string | null;
+}
+
+export async function getDailyCookingTipAction(): Promise<DailyTipActionResult> {
+  try {
+    const result: GetDailyCookingTipOutput = await getDailyCookingTip();
+    if (!result || !result.tip) {
+      return { data: null, error: "L'IA n'a pas pu fournir d'astuce aujourd'hui." };
+    }
+    return { data: result.tip, error: null };
+  } catch (e) {
+    console.error("Erreur dans getDailyCookingTipAction:", e);
+    const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la récupération de l'astuce du jour.";
     return { data: null, error: errorMessage };
   }
 }

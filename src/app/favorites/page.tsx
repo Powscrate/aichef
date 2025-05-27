@@ -78,7 +78,7 @@ export default function FavoritesPage() {
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
         {currentYear !== null ? (
-          <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
+          <p>&copy; {currentYear} AI Chef.</p>
         ) : (
           <p>Chargement...</p>
         )}

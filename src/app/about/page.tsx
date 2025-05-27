@@ -22,7 +22,7 @@ export default function AboutPage() {
         <Card className="max-w-2xl mx-auto shadow-lg border-border">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-extrabold tracking-tight text-primary">
-              À Propos de Chef IA Simplifié
+              À Propos de AI Chef
             </CardTitle>
             <CardDescription className="text-md text-muted-foreground pt-2">
               Votre assistant culinaire intelligent pour ne plus jamais être à court d'idées.
@@ -30,7 +30,7 @@ export default function AboutPage() {
           </CardHeader>
           <CardContent className="space-y-6 text-muted-foreground">
             <p>
-              <strong>Chef IA Simplifié</strong> est une application web conçue pour vous aider à découvrir de nouvelles recettes
+              <strong>AI Chef</strong> est une application web conçue pour vous aider à découvrir de nouvelles recettes
               passionnantes en fonction des ingrédients que vous avez déjà chez vous. Fini le gaspillage et les prises de tête
               pour savoir quoi cuisiner !
             </p>
@@ -53,31 +53,7 @@ export default function AboutPage() {
               </ul>
             </div>
 
-            <div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">Technologies Utilisées :</h3>
-              <p className="mb-2">
-                Cette application a été construite avec des technologies modernes pour offrir une expérience rapide,
-                réactive et intelligente :
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  <strong>Next.js & React :</strong> Pour une interface utilisateur dynamique et performante.
-                </li>
-                <li className="flex items-center gap-2">
-                  <Server className="h-5 w-5 text-primary" />
-                  <strong>Genkit (Google AI) :</strong> Pour les fonctionnalités d'intelligence artificielle générative.
-                </li>
-                <li className="flex items-center gap-2">
-                  <Wind className="h-5 w-5 text-primary" />
-                  <strong>Tailwind CSS & ShadCN/UI :</strong> Pour un design moderne et des composants réutilisables.
-                </li>
-                 <li className="flex items-center gap-2">
-                  <Database className="h-5 w-5 text-primary" />
-                  <strong>TypeScript :</strong> Pour un code plus robuste et maintenable.
-                </li>
-              </ul>
-            </div>
+            
 
             <div className="text-center pt-4">
               <Button asChild>
@@ -89,7 +65,7 @@ export default function AboutPage() {
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
         {currentYear !== null ? (
-          <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
+          <p>&copy; {currentYear} AI Chef.</p>
         ) : (
           <p>Chargement...</p>
         )}
