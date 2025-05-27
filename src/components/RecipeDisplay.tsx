@@ -372,5 +372,3 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
 }
 
 export { Card, CardContent, CardHeader };
-
-```
