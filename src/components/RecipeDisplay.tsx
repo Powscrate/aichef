@@ -393,7 +393,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
               {recipe.goalAlignment && (
                 <div className="p-3 border border-primary/50 rounded-md bg-primary/10 text-primary-foreground flex items-start gap-2 text-sm">
                   <CheckCircle className="h-5 w-5 mt-0.5 shrink-0 text-primary" />
-                  <p><strong className="text-primary">Alignement aux objectifs :</strong> {recipe.goalAlignment}</p>
+                  <p className="text-primary"><strong className="text-primary">Alignement aux objectifs :</strong> {recipe.goalAlignment}</p>
                 </div>
               )}
 
