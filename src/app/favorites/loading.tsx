@@ -28,7 +28,7 @@ export default function FavoritesLoading() {
       </main>
        <footer className="py-6 text-center text-sm text-muted-foreground border-t">
         {currentYear !== null ? (
-            <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
+            <p>&copy; {currentYear} AI Chef.</p>
             ) : (
             <p>Chargement...</p>
             )}

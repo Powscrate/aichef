@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Zap, Server, Database, Wind } from "lucide-react";
 
 export default function AboutPage() {
   const [currentYear, setCurrentYear] = useState<number | null>(null);
@@ -45,19 +44,20 @@ export default function AboutPage() {
               <ul className="list-disc list-inside space-y-1 pl-4">
                 <li>Suggestions de recettes personnalisées basées sur vos ingrédients.</li>
                 <li>Prise en compte des préférences (végétarien, vegan, sans gluten) et allergies.</li>
+                <li>Objectifs nutritionnels (calories, profil macro).</li>
                 <li>Génération d'images d'aperçu pour chaque plat.</li>
                 <li>Estimations nutritionnelles, temps de préparation/cuisson et niveau de difficulté.</li>
-                <li>Possibilité de sauvegarder vos recettes favorites.</li>
+                <li>Conseiller en substitution d'ingrédients.</li>
                 <li>Suggestions de variations créatives pour chaque recette.</li>
+                <li>Astuce culinaire quotidienne.</li>
+                <li>Possibilité de sauvegarder vos recettes favorites.</li>
                 <li>Interface utilisateur épurée avec mode sombre et clair.</li>
               </ul>
             </div>
 
-            
-
             <div className="text-center pt-4">
               <Button asChild>
-                <Link href="/">Retourner aux Recettes</Link>
+                <Link href="/">Retourner à l'Accueil</Link>
               </Button>
             </div>
           </CardContent>

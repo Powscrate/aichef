@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Chef IA Simplifié',
+  title: 'AI Chef',
   description: 'Obtenez des suggestions de recettes par IA en fonction de vos ingrédients.',
 };
 
