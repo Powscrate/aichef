@@ -1,5 +1,5 @@
 // src/app/loading.tsx
-"use client"; // Ajout de la directive "use client"
+"use client"; 
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppHeader } from "@/components/AppHeader";
@@ -30,7 +30,7 @@ export default function Loading() {
       </main>
        <footer className="py-6 text-center text-sm text-muted-foreground border-t">
         {currentYear !== null ? (
-          <p>&copy; {currentYear} AI Chef.</p>
+          <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
         ) : (
           <p>Chargement...</p>
         )}

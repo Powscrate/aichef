@@ -1,6 +1,7 @@
 // src/app/favorites/page.tsx
 "use client";
 
+import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -10,12 +11,17 @@ import { UtensilsCrossed, HeartCrack } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FavoritesPage() {
-  const { favorites, removeFavorite, removeAllFavorites, isLoaded } = useFavorites(); // Added removeAllFavorites
+  const { favorites, removeFavorite, removeAllFavorites, isLoaded } = useFavorites(); 
   const { toast } = useToast();
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   const handleRemoveAllFavorites = () => {
     if (favorites.length > 0) {
-      removeAllFavorites(); // Use the new hook function
+      removeAllFavorites(); 
       toast({
         title: "Favoris supprimés",
         description: "Toutes vos recettes favorites ont été supprimées.",
@@ -23,13 +29,7 @@ export default function FavoritesPage() {
     }
   };
   
-  // Wait for favorites to be loaded from localStorage to prevent hydration issues
-  // and to show an accurate empty state.
   if (!isLoaded) {
-    // You can return a more specific loading component for favorites if desired
-    // For now, using a simple message or deferring to a global loading state.
-    // This page has its own loading.tsx, so this might not be strictly necessary
-    // but good for client-side only data loading patterns.
     return (
       <div className="flex flex-col min-h-screen">
         <AppHeader />
@@ -37,7 +37,11 @@ export default function FavoritesPage() {
           <p>Chargement des favoris...</p>
         </main>
         <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
-          <p>&copy; {new Date().getFullYear()} Chef IA Simplifié. Propulsé par Genkit.</p>
+            {currentYear !== null ? (
+            <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
+            ) : (
+            <p>Chargement...</p>
+            )}
         </footer>
       </div>
     );
@@ -73,7 +77,11 @@ export default function FavoritesPage() {
         )}
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
-        <p>&copy; {new Date().getFullYear()} Chef IA Simplifié. Propulsé par Genkit.</p>
+        {currentYear !== null ? (
+          <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
+        ) : (
+          <p>Chargement...</p>
+        )}
       </footer>
     </div>
   );

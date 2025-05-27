@@ -23,7 +23,7 @@ import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { getRecipesAction } from "./actions";
 import type { Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Settings2, ChevronDown } from "lucide-react";
+import { Sparkles, Settings2 } from "lucide-react";
 
 const formSchema = z.object({
   ingredients: z.string().min(3, { message: "Veuillez entrer au moins un ingrédient (minimum 3 caractères)." }),
@@ -212,7 +212,7 @@ export default function AIPage() {
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
         {currentYear !== null ? (
-          <p>&copy; {currentYear} AI CHEF</p>
+          <p>&copy; {currentYear} Chef IA Simplifié. Propulsé par Genkit.</p>
         ) : (
           <p>Chargement...</p>
         )}
@@ -220,5 +220,3 @@ export default function AIPage() {
     </div>
   );
 }
-
-    
