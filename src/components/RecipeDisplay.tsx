@@ -1,8 +1,8 @@
 // src/components/RecipeDisplay.tsx
 "use client";
 
-import React, { useState } from "react"; // Ajout de useState
-import type { Recipe, NutritionalInfo, RecipeVariation, RecipeWithVariations } from "@/lib/types"; // Ajout de RecipeVariation et RecipeWithVariations
+import React, { useState } from "react"; 
+import type { Recipe, RecipeVariation, RecipeWithVariations } from "@/lib/types"; 
 import Image from 'next/image';
 import {
   Accordion,
@@ -11,15 +11,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle as ShadcnCardTitle } from "@/components/ui/card"; // Renommé CardTitle pour éviter conflit
-import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2 } from "lucide-react"; // Ajout de Lightbulb, Loader2
+import { Card, CardContent, CardHeader, CardTitle as ShadcnCardTitle } from "@/components/ui/card"; 
+import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2, Megaphone } from "lucide-react"; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useToast } from "@/hooks/use-toast";
-import { getRecipeVariationsAction } from "@/app/actions"; // Ajout de l'action
+import { getRecipeVariationsAction } from "@/app/actions"; 
 
 interface RecipeDisplayProps {
-  recipes: Recipe[]; // Utilise Recipe simple ici, l'état local gérera les variations
+  recipes: Recipe[]; 
   isLoading: boolean;
   error: string | null;
 }
@@ -38,7 +38,6 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const { toast } = useToast();
   
-  // Gérer l'état des variations localement pour chaque recette
   const [recipesWithVariations, setRecipesWithVariations] = useState<RecipeWithVariations[]>(
     initialRecipes.map(r => ({...r, variations: [], isLoadingVariations: false, variationsError: null}))
   );
@@ -158,14 +157,28 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
     );
   }
   
+  // Gérer les cas où l'IA renvoie un message spécifique (pas de recette, erreur IA)
+  if (initialRecipes.length === 1 && (initialRecipes[0].name === "Aucune recette trouvée" || initialRecipes[0].name === "Erreur de l'IA")) {
+    return (
+      <div className="mt-8 p-6 border border-border rounded-lg bg-card text-card-foreground shadow">
+        <div className="flex items-center gap-3 mb-3">
+          <Megaphone className="h-8 w-8 text-primary" />
+          <h3 className="text-xl font-semibold">{initialRecipes[0].name}</h3>
+        </div>
+        <p className="text-muted-foreground">{initialRecipes[0].notesOnAdaptation}</p>
+      </div>
+    );
+  }
+  
   if (initialRecipes.length === 0) {
     return null; 
   }
 
+
   return (
     <Accordion type="single" collapsible className="w-full space-y-4 mt-8">
       {recipesWithVariations.map((recipe, index) => (
-        <AccordionItem value={`recipe-${index}`} key={recipe.name} className="border border-border bg-card rounded-lg shadow-sm overflow-hidden">
+        <AccordionItem value={`recipe-${index}`} key={recipe.name + index} className="border border-border bg-card rounded-lg shadow-sm overflow-hidden">
           <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline text-primary w-full">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3">
@@ -188,65 +201,81 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                   />
                 </div>
               ) : (
+                 recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" && // Ne pas montrer l'espace réservé pour les messages d'erreur
                 <div className="mb-4 flex flex-col items-center justify-center h-40 bg-muted/50 rounded-md border border-dashed border-border">
                   <ImageOff className="h-12 w-12 text-muted-foreground mb-3"/>
                   <p className="text-md text-muted-foreground">Aperçu non disponible</p>
                 </div>
               )}
-               <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleFavoriteToggle(recipe)}
-                className="w-full sm:w-auto flex items-center gap-2 group text-muted-foreground hover:text-primary"
-                aria-label={isFavorited(recipe.name) ? "Retirer des favoris" : "Ajouter aux favoris"}
-              >
-                <Heart className={`h-5 w-5 transition-colors duration-200 ${isFavorited(recipe.name) ? 'fill-red-500 text-red-500' : 'text-muted-foreground group-hover:text-red-500'}`} />
-                {isFavorited(recipe.name) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-              </Button>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
-                    <ListChecks className="h-5 w-5 text-primary" />
-                    Ingrédients
-                  </h3>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleCopyToClipboard(recipe.ingredients.join('\n'), 'ingrédients')}
-                    className="text-muted-foreground hover:text-primary"
-                    aria-label="Copier les ingrédients"
-                  >
-                    <ClipboardCopy className="h-4 w-4 mr-2" /> Copier
-                  </Button>
+              { recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleFavoriteToggle(recipe)}
+                  className="w-full sm:w-auto flex items-center gap-2 group text-muted-foreground hover:text-primary"
+                  aria-label={isFavorited(recipe.name) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                >
+                  <Heart className={`h-5 w-5 transition-colors duration-200 ${isFavorited(recipe.name) ? 'fill-red-500 text-red-500' : 'text-muted-foreground group-hover:text-red-500'}`} />
+                  {isFavorited(recipe.name) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                </Button>
+              )}
+
+              {recipe.notesOnAdaptation && (
+                <div className="p-3 border border-accent/50 rounded-md bg-accent/10 text-accent-foreground flex items-start gap-2 text-sm">
+                  <Megaphone className="h-5 w-5 mt-0.5 shrink-0" />
+                  <p>{recipe.notesOnAdaptation}</p>
                 </div>
-                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
-                  {recipe.ingredients.map((ingredient, i) => (
-                    <li key={i}>{ingredient}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
-                    <UtensilsCrossed className="h-5 w-5 text-primary" />
-                    Instructions
-                  </h3>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleCopyToClipboard(recipe.instructions, 'instructions')}
-                    className="text-muted-foreground hover:text-primary"
-                    aria-label="Copier les instructions"
-                  >
-                    <ClipboardCopy className="h-4 w-4 mr-2" /> Copier
-                  </Button>
+              )}
+
+              {recipe.ingredients && recipe.ingredients.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
+                      <ListChecks className="h-5 w-5 text-primary" />
+                      Ingrédients
+                    </h3>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleCopyToClipboard(recipe.ingredients.join('\n'), 'ingrédients')}
+                      className="text-muted-foreground hover:text-primary"
+                      aria-label="Copier les ingrédients"
+                    >
+                      <ClipboardCopy className="h-4 w-4 mr-2" /> Copier
+                    </Button>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                    {recipe.ingredients.map((ingredient, i) => (
+                      <li key={i}>{ingredient}</li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed prose prose-sm max-w-none">
-                  {recipe.instructions.split('\n').map((line, idx) => (
-                    <p key={idx} className="mb-1">{line}</p>
-                  ))}
+              )}
+              
+              {recipe.instructions && (
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
+                      <UtensilsCrossed className="h-5 w-5 text-primary" />
+                      Instructions
+                    </h3>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleCopyToClipboard(recipe.instructions, 'instructions')}
+                      className="text-muted-foreground hover:text-primary"
+                      aria-label="Copier les instructions"
+                    >
+                      <ClipboardCopy className="h-4 w-4 mr-2" /> Copier
+                    </Button>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed prose prose-sm max-w-none">
+                    {recipe.instructions.split('\n').map((line, idx) => (
+                      <p key={idx} className="mb-1">{line}</p>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {recipe.nutritionalInfo && (Object.values(recipe.nutritionalInfo).some(val => val)) && (
                 <div className="pt-4 border-t border-border">
@@ -263,74 +292,75 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                 </div>
               )}
 
-              {/* Section pour les variations de recettes */}
-              <div className="pt-4 border-t border-border">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => handleSuggestVariations(recipe.name)} 
-                  disabled={recipe.isLoadingVariations}
-                  className="w-full sm:w-auto"
-                >
-                  {recipe.isLoadingVariations ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Recherche de variations...
-                    </>
-                  ) : (
-                    <>
-                      <Lightbulb className="mr-2 h-4 w-4" />
-                      Suggérer des Variations
-                    </>
+              { recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" && (
+                <div className="pt-4 border-t border-border">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => handleSuggestVariations(recipe.name)} 
+                    disabled={recipe.isLoadingVariations}
+                    className="w-full sm:w-auto"
+                  >
+                    {recipe.isLoadingVariations ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Recherche de variations...
+                      </>
+                    ) : (
+                      <>
+                        <Lightbulb className="mr-2 h-4 w-4" />
+                        Suggérer des Variations
+                      </>
+                    )}
+                  </Button>
+
+                  {recipe.isLoadingVariations && (
+                    <div className="mt-4 space-y-3">
+                      <Skeleton className="h-6 w-1/2 rounded" />
+                      <Skeleton className="h-4 w-3/4 rounded" />
+                      <Skeleton className="h-4 w-full rounded" />
+                    </div>
                   )}
-                </Button>
 
-                {recipe.isLoadingVariations && (
-                  <div className="mt-4 space-y-3">
-                    <Skeleton className="h-6 w-1/2 rounded" />
-                    <Skeleton className="h-4 w-3/4 rounded" />
-                    <Skeleton className="h-4 w-full rounded" />
-                  </div>
-                )}
+                  {recipe.variationsError && (
+                    <div className="mt-4 p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
+                      <AlertCircle className="h-4 w-4" />
+                      <p>{recipe.variationsError}</p>
+                    </div>
+                  )}
 
-                {recipe.variationsError && (
-                  <div className="mt-4 p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
-                    <AlertCircle className="h-4 w-4" />
-                    <p>{recipe.variationsError}</p>
-                  </div>
-                )}
-
-                {recipe.variations && recipe.variations.length > 0 && !recipe.isLoadingVariations && (
-                  <div className="mt-6 space-y-4">
-                    <h4 className="text-base font-medium text-foreground">Idées de Variations :</h4>
-                    {recipe.variations.map((variation, vIndex) => (
-                      <Card key={vIndex} className="bg-muted/50 border-border shadow-sm">
-                        <CardHeader className="pb-3">
-                          <ShadcnCardTitle className="text-md text-primary">{variation.variationName}</ShadcnCardTitle>
-                        </CardHeader>
-                        <CardContent className="text-sm space-y-2">
-                          <p className="text-muted-foreground italic">{variation.description}</p>
-                          {variation.changesToIngredients && variation.changesToIngredients.length > 0 && (
-                            <div>
-                              <strong className="text-foreground">Changements d'ingrédients :</strong>
-                              <ul className="list-disc list-inside ml-4 mt-1 text-muted-foreground">
-                                {variation.changesToIngredients.map((change, ciIndex) => (
-                                  <li key={ciIndex}>{change}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          {variation.changesToInstructions && (
-                            <div>
-                              <strong className="text-foreground">Changements d'instructions :</strong>
-                              <p className="mt-1 text-muted-foreground whitespace-pre-line">{variation.changesToInstructions}</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
+                  {recipe.variations && recipe.variations.length > 0 && !recipe.isLoadingVariations && (
+                    <div className="mt-6 space-y-4">
+                      <h4 className="text-base font-medium text-foreground">Idées de Variations :</h4>
+                      {recipe.variations.map((variation, vIndex) => (
+                        <Card key={vIndex} className="bg-muted/50 border-border shadow-sm">
+                          <CardHeader className="pb-3">
+                            <ShadcnCardTitle className="text-md text-primary">{variation.variationName}</ShadcnCardTitle>
+                          </CardHeader>
+                          <CardContent className="text-sm space-y-2">
+                            <p className="text-muted-foreground italic">{variation.description}</p>
+                            {variation.changesToIngredients && variation.changesToIngredients.length > 0 && (
+                              <div>
+                                <strong className="text-foreground">Changements d'ingrédients :</strong>
+                                <ul className="list-disc list-inside ml-4 mt-1 text-muted-foreground">
+                                  {variation.changesToIngredients.map((change, ciIndex) => (
+                                    <li key={ciIndex}>{change}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {variation.changesToInstructions && (
+                              <div>
+                                <strong className="text-foreground">Changements d'instructions :</strong>
+                                <p className="mt-1 text-muted-foreground whitespace-pre-line">{variation.changesToInstructions}</p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
 
             </div>
@@ -341,10 +371,6 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
   );
 }
 
-// Pour éviter les erreurs de build temporaires, on ajoute Card, CardHeader, CardContent ici même si non utilisés directement dans ce fichier après les modifs.
-// Cela peut arriver si d'autres composants importent ces éléments spécifiquement depuis ce fichier.
-// Normalement, ils devraient être importés depuis "@/components/ui/card"
-// Ceci est une solution de contournement temporaire si le build échoue à cause de cela.
-// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// export { Card, CardContent, CardHeader, CardTitle }; // CardTitle déjà ShadcnCardTitle
 export { Card, CardContent, CardHeader };
+
+```

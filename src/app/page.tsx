@@ -8,17 +8,23 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppHeader } from "@/components/AppHeader";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { getRecipesAction } from "./actions";
 import type { Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Settings2 } from "lucide-react";
 
 const formSchema = z.object({
   ingredients: z.string().min(3, { message: "Veuillez entrer au moins un ingrédient (minimum 3 caractères)." }),
+  isVegetarian: z.boolean().optional(),
+  isVegan: z.boolean().optional(),
+  isGlutenFree: z.boolean().optional(),
+  allergies: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -39,16 +45,37 @@ export default function AIPage() {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
+    setValue,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      isVegetarian: false,
+      isVegan: false,
+      isGlutenFree: false,
+      allergies: "",
+    }
   });
+
+  const isVegan = watch("isVegan");
+
+  useEffect(() => {
+    if (isVegan) {
+      setValue("isVegetarian", true);
+    }
+  }, [isVegan, setValue]);
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsLoading(true);
     setError(null);
-    setRecipes([]); // Clear previous recipes
+    setRecipes([]); 
 
-    const result = await getRecipesAction(data.ingredients);
+    const dietaryPreferences: string[] = [];
+    if (data.isVegetarian) dietaryPreferences.push("végétarien");
+    if (data.isVegan) dietaryPreferences.push("vegan");
+    if (data.isGlutenFree) dietaryPreferences.push("sans gluten");
+
+    const result = await getRecipesAction(data.ingredients, dietaryPreferences, data.allergies);
 
     setIsLoading(false);
     if (result.error) {
@@ -60,12 +87,20 @@ export default function AIPage() {
       });
     } else if (result.data) {
       setRecipes(result.data);
-      if (result.data.length === 0) {
+      if (result.data.length === 0 || (result.data.length === 1 && result.data[0].name === "Aucune recette trouvée")) {
         toast({
           title: "Aucune recette trouvée",
-          description: "L'IA n'a trouvé aucune recette pour les ingrédients fournis. Essayez-en d'autres !",
+          description: result.data[0]?.notesOnAdaptation || "L'IA n'a trouvé aucune recette pour les ingrédients et contraintes fournis. Essayez-en d'autres !",
         });
-      } else {
+      } else if (result.data.length === 1 && result.data[0].name === "Erreur de l'IA") {
+         toast({
+          title: "Erreur de l'IA",
+          description: result.data[0]?.notesOnAdaptation || "Un problème est survenu avec l'IA.",
+          variant: "destructive",
+        });
+      }
+      
+      else {
         toast({
           title: "Recettes trouvées!",
           description: `L'IA a concocté ${result.data.length} recette(s) pour vous.`,
@@ -86,7 +121,7 @@ export default function AIPage() {
                   Qu'y a-t-il dans votre garde-manger ?
                 </CardTitle>
                 <CardDescription className="text-md lg:text-lg text-muted-foreground pt-2">
-                  Entrez vos ingrédients, et notre chef IA vous concoctera des idées de recettes !
+                  Entrez vos ingrédients, préférences et allergies, et notre chef IA vous concoctera des idées !
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -106,6 +141,38 @@ export default function AIPage() {
                       <p className="text-sm text-destructive mt-1">{errors.ingredients.message}</p>
                     )}
                   </div>
+
+                  <div className="space-y-4">
+                    <Label className="block text-sm font-medium text-foreground mb-2 flex items-center">
+                      <Settings2 className="h-5 w-5 mr-2 text-primary" /> Préférences et Restrictions
+                    </Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="isVegetarian" {...register("isVegetarian")} disabled={isVegan} />
+                        <Label htmlFor="isVegetarian" className="text-sm font-normal text-muted-foreground">Végétarien</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="isVegan" {...register("isVegan")} />
+                        <Label htmlFor="isVegan" className="text-sm font-normal text-muted-foreground">Vegan</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="isGlutenFree" {...register("isGlutenFree")} />
+                        <Label htmlFor="isGlutenFree" className="text-sm font-normal text-muted-foreground">Sans Gluten</Label>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="allergies" className="block text-xs font-medium text-foreground mt-3 mb-1">
+                        Autres allergies ou restrictions (ex: arachides, lactose)
+                      </Label>
+                      <Input
+                        id="allergies"
+                        {...register("allergies")}
+                        placeholder="ex: fruits à coque, soja"
+                        className="text-sm bg-input border-border focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
                   <Button type="submit" className="w-full text-lg py-3" disabled={isLoading}>
                     {isLoading ? (
                       <>

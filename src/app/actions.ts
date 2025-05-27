@@ -12,32 +12,59 @@ interface RecipeActionResult {
   error: string | null;
 }
 
-export async function getRecipesAction(ingredients: string): Promise<RecipeActionResult> {
+export async function getRecipesAction(
+  ingredients: string,
+  dietaryPreferences?: string[],
+  allergies?: string
+): Promise<RecipeActionResult> {
   if (!ingredients || ingredients.trim() === "") {
     return { data: null, error: "Veuillez entrer quelques ingrédients." };
   }
 
   try {
-    const recipeTextInput: SuggestRecipesInput = { ingredients };
-    // Utiliser le type de Genkit pour la sortie ici
+    const recipeTextInput: SuggestRecipesInput = { 
+      ingredients,
+      dietaryPreferences: dietaryPreferences && dietaryPreferences.length > 0 ? dietaryPreferences : undefined,
+      allergies: allergies && allergies.trim() !== "" ? allergies : undefined,
+    };
+    
     const recipeTextResult: SuggestRecipesGenkitOutput = await suggestRecipes(recipeTextInput);
     
     if (!recipeTextResult || !recipeTextResult.recipes) {
       return { data: null, error: "Impossible de générer des recettes. L'IA a renvoyé un format inattendu." };
     }
 
-    const recipesWithImagesPromises = recipeTextResult.recipes.map(async (recipeBase) => {
+    // Filter out placeholder/error recipes before image generation
+    const validRecipesBase = recipeTextResult.recipes.filter(
+      recipe => recipe.name !== "Erreur de l'IA" && recipe.name !== "Aucune recette trouvée" && recipe.ingredients.length > 0
+    );
+    
+    const recipesWithImagesPromises = validRecipesBase.map(async (recipeBase) => {
       try {
         const imageInput: GenerateRecipeImageInput = { recipeName: recipeBase.name };
         const imageUrl = await generateRecipeImage(imageInput);
         return { ...recipeBase, imageUrl };
       } catch (imageError) {
         console.error(`Erreur lors de la génération de l'image pour la recette "${recipeBase.name}":`, imageError);
-        return { ...recipeBase, imageUrl: undefined };
+        return { ...recipeBase, imageUrl: undefined }; // Garder la recette même si l'image échoue
       }
     });
 
     const recipesWithImages: Recipe[] = await Promise.all(recipesWithImagesPromises);
+
+    // If the original response only contained error/placeholder recipes, reflect that.
+    if (validRecipesBase.length === 0 && recipeTextResult.recipes.length > 0) {
+        const placeholderMessage = recipeTextResult.recipes[0].notesOnAdaptation || "Aucune recette compatible trouvée.";
+        // Afficher ce message à l'utilisateur via le mécanisme d'erreur ou une recette spéciale
+         return { data: [{
+            name: recipeTextResult.recipes[0].name, // "Aucune recette trouvée" ou "Erreur de l'IA"
+            ingredients: [],
+            instructions: "",
+            notesOnAdaptation: placeholderMessage,
+            imageUrl: undefined // Pas d'image pour les placeholders
+        }], error: null };
+    }
+
 
     return { data: recipesWithImages, error: null };
 
@@ -50,7 +77,7 @@ export async function getRecipesAction(ingredients: string): Promise<RecipeActio
 
 
 interface VariationActionResult {
-  data: SuggestRecipeVariationsOutput | null; // Utilise le type de lib/types.ts
+  data: SuggestRecipeVariationsOutput | null; 
   error: string | null;
 }
 
@@ -70,12 +97,10 @@ export async function getRecipeVariationsAction(
   };
 
   try {
-    // Utiliser le type de Genkit pour la sortie ici
     const result: SuggestRecipeVariationsGenkitOutput = await suggestRecipeVariations(input);
     if (!result || !result.variations || result.variations.length === 0) {
       return { data: null, error: "L'IA n'a pas pu suggérer de variations pour cette recette." };
     }
-    // Le type de retour de cette action est SuggestRecipeVariationsOutput de lib/types.ts
     return { data: result as SuggestRecipeVariationsOutput, error: null };
   } catch (e) {
     console.error(`Erreur dans getRecipeVariationsAction pour "${recipeName}":`, e);
