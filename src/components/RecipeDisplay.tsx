@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle as ShadcnCardTitle } from "@/components/ui/card"; 
-import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2, Megaphone, Clock3, Timer } from "lucide-react"; 
+import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2, Megaphone, Clock3, Timer, Award } from "lucide-react"; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useToast } from "@/hooks/use-toast";
@@ -229,15 +229,16 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                 </div>
               )}
 
-              {(recipe.estimatedPreparationTime || recipe.estimatedCookingTime) && (
+              {(recipe.estimatedPreparationTime || recipe.estimatedCookingTime || recipe.difficultyLevel) && (
                  <div className="pt-4 border-t border-border">
                   <h3 className="text-md font-medium mb-3 flex items-center gap-2 text-foreground">
                     <Info className="h-5 w-5 text-primary" />
-                    Temps Estimés
+                    Détails de la Recette
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <InfoItem icon={Clock3} label="Préparation" value={recipe.estimatedPreparationTime} srOnlyLabel="Temps de préparation estimé" />
                     <InfoItem icon={Timer} label="Cuisson" value={recipe.estimatedCookingTime} srOnlyLabel="Temps de cuisson estimé" />
+                    <InfoItem icon={Award} label="Difficulté" value={recipe.difficultyLevel} srOnlyLabel="Niveau de difficulté estimé" />
                   </div>
                 </div>
               )}
@@ -388,5 +389,3 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
 }
 
 export { Card, CardContent, CardHeader };
-
-    

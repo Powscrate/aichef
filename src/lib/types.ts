@@ -15,6 +15,7 @@ export interface Recipe {
   notesOnAdaptation?: string;
   estimatedPreparationTime?: string;
   estimatedCookingTime?: string;
+  difficultyLevel?: string; // Nouveau champ
 }
 
 // Nouveaux types pour les variations de recettes
@@ -35,5 +36,3 @@ export interface RecipeWithVariations extends Recipe {
   isLoadingVariations?: boolean;
   variationsError?: string | null;
 }
-
-    

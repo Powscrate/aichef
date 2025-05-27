@@ -34,7 +34,8 @@ const SuggestRecipesOutputSchema = z.object({
       nutritionalInfo: NutritionalInfoSchema,
       notesOnAdaptation: z.string().optional().describe('Optional notes if the recipe was adapted due to preferences/allergies, or if no compatible recipe could be found.'),
       estimatedPreparationTime: z.string().optional().describe("Temps de préparation estimé (ex: 'environ 20 minutes', '10-15 minutes')."),
-      estimatedCookingTime: z.string().optional().describe("Temps de cuisson estimé (ex: 'environ 30 minutes', '45 min - 1 heure')."),
+      estimatedCookingTime: z.string().optional().describe("Temps de cuisson estimé, dérivé de l'analyse des instructions (ex: 'environ 30 minutes', '45 min - 1 heure')."),
+      difficultyLevel: z.string().optional().describe("Niveau de difficulté estimé (ex: 'Facile', 'Moyen', 'Difficile') basé sur les ingrédients, les instructions et le temps total."),
     }))
     .describe('A list of suggested recipes. If no recipes can be made due to constraints, this list might be empty and a note provided in notesOnAdaptation.'),
 });
@@ -73,8 +74,11 @@ Pour chaque recette :
     *   **Lisibles Visuellement :** Structurez les instructions pour faciliter la lecture rapide. Utilisez des étapes numérotées pour la séquence principale. Si une étape implique plusieurs actions, envisagez d'utiliser des puces (par exemple, « - Hacher les oignons », « - Émincer l'ail ») à l'intérieur de cette étape numérotée.
     *   **Orientées vers l'Action :** Commencez les étapes par des verbes d'action.
 3.  **Informations Nutritionnelles Estimées :** Pour chaque recette, fournissez une **estimation** des informations nutritionnelles par portion, si possible : calories, protéines, glucides et lipides. Indiquez clairement que ce sont des estimations. Si une information n'est pas disponible, omettez-la simplement.
-4.  **Estimations des Temps :** Fournissez une estimation pour le 'estimatedPreparationTime' (temps de préparation) et 'estimatedCookingTime' (temps de cuisson). Ces temps doivent être réalistes et exprimés de manière claire (ex: "20 minutes", "1 heure", "10-15 min"). Si une estimation fiable n'est pas possible, omettez le champ.
-5.  **Adaptation aux Préférences et Allergies :**
+4.  **Estimations des Temps :** 
+    *   Fournissez une estimation pour le 'estimatedPreparationTime' (temps de préparation). Ce temps doit être réaliste et exprimé de manière claire (ex: "20 minutes", "10-15 min").
+    *   Pour le 'estimatedCookingTime' (temps de cuisson), **analysez attentivement les étapes de cuisson dans les 'instructions'** pour déduire une estimation réaliste. Si les instructions mentionnent des durées spécifiques (ex: "mijoter pendant 30 minutes", "cuire au four 20 minutes"), utilisez-les. Sinon, basez-vous sur les actions de cuisson (ex: "faire dorer", "jusqu'à ce que ce soit tendre") pour fournir une estimation. Exprimez-le clairement (ex: "environ 30 minutes", "45 min - 1 heure"). Si une estimation fiable n'est pas possible même après analyse, omettez le champ.
+5.  **Niveau de Difficulté Estimé :** Fournissez un 'difficultyLevel' (ex: 'Facile', 'Moyen', 'Difficile'). Ce niveau doit être basé sur une évaluation globale de la recette, considérant le nombre d'ingrédients à gérer, la complexité des techniques de préparation et de cuisson décrites dans les 'instructions', et le temps total estimé.
+6.  **Adaptation aux Préférences et Allergies :**
     *   Si des préférences alimentaires (ex: végétarien, vegan) sont spécifiées, adaptez les recettes pour qu'elles respectent scrupuleusement ces préférences en utilisant UNIQUEMENT les ingrédients fournis.
     *   Si des allergies sont listées, assurez-vous que les recettes ne contiennent AUCUN des allergènes mentionnés, en utilisant UNIQUEMENT les ingrédients fournis.
     *   **Cas de Conflit Important :** Si les ingrédients fournis par l'utilisateur et les préférences/allergies sont contradictoires (par exemple, "poulet" comme ingrédient et "végétarien" comme préférence), vous devez impérativement le signaler dans le champ 'notesOnAdaptation' de la recette concernée (ou pour une note globale si aucune recette n'est possible). Ne proposez PAS de recette qui viole ces contraintes. Vous pouvez :
@@ -91,6 +95,7 @@ Formatez votre réponse en tant qu'objet JSON avec un champ "recipes". Chaque ob
 - "nutritionalInfo": Un objet optionnel avec les champs "calories", "protein", "carbs", "fat" (tous optionnels et de type string).
 - "estimatedPreparationTime": Une chaîne optionnelle (ex: "environ 20 minutes").
 - "estimatedCookingTime": Une chaîne optionnelle (ex: "environ 45 minutes").
+- "difficultyLevel": Une chaîne optionnelle (ex: "Facile", "Moyen", "Difficile").
 - "notesOnAdaptation": Une chaîne optionnelle pour les notes sur l'adaptation ou les conflits.
 `,
 });
@@ -124,5 +129,3 @@ const suggestRecipesFlow = ai.defineFlow(
     return output;
   }
 );
-
-    
