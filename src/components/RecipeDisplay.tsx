@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle as ShadcnCardTitle } from "@/components/ui/card"; 
-import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2, Megaphone } from "lucide-react"; 
+import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, Flame, Beef, Wheat, Droplet, Info, ClipboardCopy, Lightbulb, Loader2, Megaphone, Clock3, Timer } from "lucide-react"; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useToast } from "@/hooks/use-toast";
@@ -24,15 +24,17 @@ interface RecipeDisplayProps {
   error: string | null;
 }
 
-const NutritionItem: React.FC<{ icon: React.ElementType; label: string; value?: string }> = ({ icon: Icon, label, value }) => {
+const InfoItem: React.FC<{ icon: React.ElementType; label: string; value?: string, srOnlyLabel?: string }> = ({ icon: Icon, label, value, srOnlyLabel }) => {
   if (!value) return null;
   return (
     <div className="flex items-center text-sm text-muted-foreground">
-      <Icon className="h-4 w-4 mr-2 text-primary" />
-      <span>{label}: {value}</span>
+      <Icon className="h-4 w-4 mr-2 text-primary" aria-hidden="true" />
+      <span className="sr-only">{srOnlyLabel || label}: </span>
+      <span>{value}</span>
     </div>
   );
 };
+
 
 export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: RecipeDisplayProps) {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
@@ -227,8 +229,36 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                 </div>
               )}
 
+              {(recipe.estimatedPreparationTime || recipe.estimatedCookingTime) && (
+                 <div className="pt-4 border-t border-border">
+                  <h3 className="text-md font-medium mb-3 flex items-center gap-2 text-foreground">
+                    <Info className="h-5 w-5 text-primary" />
+                    Temps Estimés
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <InfoItem icon={Clock3} label="Préparation" value={recipe.estimatedPreparationTime} srOnlyLabel="Temps de préparation estimé" />
+                    <InfoItem icon={Timer} label="Cuisson" value={recipe.estimatedCookingTime} srOnlyLabel="Temps de cuisson estimé" />
+                  </div>
+                </div>
+              )}
+
+              {recipe.nutritionalInfo && (Object.values(recipe.nutritionalInfo).some(val => val)) && (
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-md font-medium mb-3 flex items-center gap-2 text-foreground">
+                    <Info className="h-5 w-5 text-primary" />
+                    Informations Nutritionnelles (Estimations)
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <InfoItem icon={Flame} label="Calories" value={recipe.nutritionalInfo.calories} />
+                    <InfoItem icon={Beef} label="Protéines" value={recipe.nutritionalInfo.protein} />
+                    <InfoItem icon={Wheat} label="Glucides" value={recipe.nutritionalInfo.carbs} />
+                    <InfoItem icon={Droplet} label="Lipides" value={recipe.nutritionalInfo.fat} />
+                  </div>
+                </div>
+              )}
+
               {recipe.ingredients && recipe.ingredients.length > 0 && (
-                <div>
+                <div className="pt-4 border-t border-border">
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
                       <ListChecks className="h-5 w-5 text-primary" />
@@ -253,7 +283,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
               )}
               
               {recipe.instructions && (
-                <div>
+                <div className="pt-4 border-t border-border">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-md font-medium flex items-center gap-2 text-foreground">
                       <UtensilsCrossed className="h-5 w-5 text-primary" />
@@ -277,20 +307,6 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                 </div>
               )}
 
-              {recipe.nutritionalInfo && (Object.values(recipe.nutritionalInfo).some(val => val)) && (
-                <div className="pt-4 border-t border-border">
-                  <h3 className="text-md font-medium mb-3 flex items-center gap-2 text-foreground">
-                    <Info className="h-5 w-5 text-primary" />
-                    Informations Nutritionnelles (Estimations)
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <NutritionItem icon={Flame} label="Calories" value={recipe.nutritionalInfo.calories} />
-                    <NutritionItem icon={Beef} label="Protéines" value={recipe.nutritionalInfo.protein} />
-                    <NutritionItem icon={Wheat} label="Glucides" value={recipe.nutritionalInfo.carbs} />
-                    <NutritionItem icon={Droplet} label="Lipides" value={recipe.nutritionalInfo.fat} />
-                  </div>
-                </div>
-              )}
 
               { recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" && (
                 <div className="pt-4 border-t border-border">
@@ -372,3 +388,5 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
 }
 
 export { Card, CardContent, CardHeader };
+
+    

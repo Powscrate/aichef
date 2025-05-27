@@ -12,7 +12,9 @@ export interface Recipe {
   instructions: string;
   imageUrl?: string;
   nutritionalInfo?: NutritionalInfo;
-  notesOnAdaptation?: string; // Ajouté pour les notes d'adaptation/conflits
+  notesOnAdaptation?: string;
+  estimatedPreparationTime?: string;
+  estimatedCookingTime?: string;
 }
 
 // Nouveaux types pour les variations de recettes
@@ -34,4 +36,4 @@ export interface RecipeWithVariations extends Recipe {
   variationsError?: string | null;
 }
 
-```
+    

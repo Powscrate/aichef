@@ -12,12 +12,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { AppHeader } from "@/components/AppHeader";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { getRecipesAction } from "./actions";
 import type { Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Settings2 } from "lucide-react";
+import { Sparkles, Settings2, ChevronDown } from "lucide-react";
 
 const formSchema = z.object({
   ingredients: z.string().min(3, { message: "Veuillez entrer au moins un ingrédient (minimum 3 caractères)." }),
@@ -121,7 +127,7 @@ export default function AIPage() {
                   Qu'y a-t-il dans votre garde-manger ?
                 </CardTitle>
                 <CardDescription className="text-md lg:text-lg text-muted-foreground pt-2">
-                  Entrez vos ingrédients, préférences et allergies, et notre chef IA vous concoctera des idées !
+                  Entrez vos ingrédients et laissez notre chef IA vous concocter des idées !
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -142,36 +148,44 @@ export default function AIPage() {
                     )}
                   </div>
 
-                  <div className="space-y-4">
-                    <Label className="block text-sm font-medium text-foreground mb-2 flex items-center">
-                      <Settings2 className="h-5 w-5 mr-2 text-primary" /> Préférences et Restrictions
-                    </Label>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="isVegetarian" {...register("isVegetarian")} disabled={isVegan} />
-                        <Label htmlFor="isVegetarian" className="text-sm font-normal text-muted-foreground">Végétarien</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="isVegan" {...register("isVegan")} />
-                        <Label htmlFor="isVegan" className="text-sm font-normal text-muted-foreground">Vegan</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="isGlutenFree" {...register("isGlutenFree")} />
-                        <Label htmlFor="isGlutenFree" className="text-sm font-normal text-muted-foreground">Sans Gluten</Label>
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="allergies" className="block text-xs font-medium text-foreground mt-3 mb-1">
-                        Autres allergies ou restrictions (ex: arachides, lactose)
-                      </Label>
-                      <Input
-                        id="allergies"
-                        {...register("allergies")}
-                        placeholder="ex: fruits à coque, soja"
-                        className="text-sm bg-input border-border focus:ring-primary"
-                      />
-                    </div>
-                  </div>
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="preferences" className="border-b-0">
+                      <AccordionTrigger className="text-sm font-medium text-foreground hover:no-underline py-2">
+                        <div className="flex items-center">
+                          <Settings2 className="h-5 w-5 mr-2 text-primary" />
+                          Préférences et Restrictions (Optionnel)
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 space-y-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox id="isVegetarian" {...register("isVegetarian")} disabled={isVegan} />
+                            <Label htmlFor="isVegetarian" className="text-sm font-normal text-muted-foreground">Végétarien</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox id="isVegan" {...register("isVegan")} />
+                            <Label htmlFor="isVegan" className="text-sm font-normal text-muted-foreground">Vegan</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox id="isGlutenFree" {...register("isGlutenFree")} />
+                            <Label htmlFor="isGlutenFree" className="text-sm font-normal text-muted-foreground">Sans Gluten</Label>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="allergies" className="block text-xs font-medium text-foreground mt-3 mb-1">
+                            Autres allergies ou restrictions (ex: arachides, lactose)
+                          </Label>
+                          <Input
+                            id="allergies"
+                            {...register("allergies")}
+                            placeholder="ex: fruits à coque, soja"
+                            className="text-sm bg-input border-border focus:ring-primary"
+                          />
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
 
                   <Button type="submit" className="w-full text-lg py-3" disabled={isLoading}>
                     {isLoading ? (
@@ -206,3 +220,5 @@ export default function AIPage() {
     </div>
   );
 }
+
+    
