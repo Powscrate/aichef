@@ -13,11 +13,11 @@ import {z} from 'genkit';
 
 const GenerateShoppingListInputSchema = z.object({
   recipeName: z.string().describe("Le nom de la recette."),
-  recipeIngredients: z.array(z.string()).describe("La liste des ingrédients requis pour la recette."),
+  recipeIngredients: z.array(z.string()).describe("La liste des ingrédients requis pour la recette, idéalement avec les quantités (ex: '200g de poulet', '1 oignon')."),
 });
 export type GenerateShoppingListInput = z.infer<typeof GenerateShoppingListInputSchema>;
 
-const ShoppingListItemSchema = z.string().describe("Un article à acheter, incluant la quantité si spécifiée dans l'ingrédient original de la recette.");
+const ShoppingListItemSchema = z.string().describe("Un article à acheter, incluant la quantité si spécifiée dans l'ingrédient original de la recette (ex: 'Poulet - 200g', 'Oignon - 1 moyen').");
 
 const ShoppingListCategorySchema = z.object({
   categoryName: z.string().describe("Le nom de la catégorie de la liste de courses (ex: 'Fruits & Légumes', 'Produits Laitiers & Oeufs', 'Épicerie', 'Viandes & Poissons')."),
@@ -46,13 +46,14 @@ Pour la recette nommée "{{{recipeName}}}", avec les ingrédients suivants :
 {{/each}}
 
 Veuillez générer une liste de courses catégorisée. Les catégories doivent être des sections courantes de supermarché comme 'Fruits & Légumes', 'Produits Laitiers & Oeufs', 'Viandes & Poissons', 'Épicerie', 'Épices & Herbes', 'Surgelés', 'Boissons', 'Boulangerie & Pâtisserie', 'Autres'.
-Si un ingrédient spécifie clairement une quantité (ex: "2 carottes", "1 tasse de farine", "200g de blanc de poulet"), incluez cette quantité dans l'article de la liste de courses.
+**Si un ingrédient spécifie clairement une quantité (ex: "2 carottes", "1 tasse de farine", "200g de blanc de poulet"), incluez cette quantité dans l'article de la liste de courses.**
 Assurez-vous que tous les ingrédients de la recette soient inclus dans la liste de courses.
 
-Retournez la sortie sous forme d'objet JSON avec un champ "recipeName" (qui est "{{{recipeName}}}") et un champ "shoppingList". Le champ "shoppingList" doit être un tableau d'objets, où chaque objet a un "categoryName" et un tableau "items" (liste de chaînes d'ingrédients).
+Retournez la sortie sous forme d'objet JSON avec un champ "recipeName" (qui est "{{{recipeName}}}") et un champ "shoppingList". Le champ "shoppingList" doit être un tableau d'objets, où chaque objet a un "categoryName" et un tableau "items" (liste de chaînes d'ingrédients avec leurs quantités si spécifiées).
 Si un ingrédient semble pouvoir appartenir à plusieurs catégories, choisissez la plus courante.
-Exemple d'un article : "2 gros oignons", "1 boîte (400g) de tomates concassées", "Persil frais, un petit bouquet".
+**Exemple d'un article dans la liste de courses : "2 gros oignons", "1 boîte (400g) de tomates concassées", "Persil frais, un petit bouquet".**
 Assurez-vous que la langue pour les catégories et les articles soit le Français.
+Si un ingrédient n'a pas de quantité explicite (ex: "sel"), listez-le simplement (ex: "Sel").
 `,
 });
 
@@ -71,3 +72,4 @@ const generateShoppingListFlow = ai.defineFlow(
     return { ...output, recipeName: input.recipeName };
   }
 );
+

@@ -35,7 +35,7 @@ const SuggestRecipesOutputSchema = z.object({
   recipes: z
     .array(z.object({
       name: z.string().describe('The name of the recipe.'),
-      ingredients: z.array(z.string()).describe('The ingredients required for the recipe.'),
+      ingredients: z.array(z.string()).describe('The ingredients required for the recipe, including estimated quantities for each (e.g., "200g de poulet", "1 oignon moyen").'),
       instructions: z.string().describe('The instructions for the recipe.'),
       nutritionalInfo: NutritionalInfoSchema,
       notesOnAdaptation: z.string().optional().describe('Optional notes if the recipe was adapted due to preferences/allergies, or if no compatible recipe could be found.'),
@@ -82,21 +82,24 @@ Profil macronutritionnel souhaité : {{{macronutrientProfile}}}
 {{/if}}
 
 Pour chaque recette suggérée :
-1.  **Langue :** Tous les noms de recettes, listes d'ingrédients (exclusivement tirés de '{{{ingredients}}}') et instructions doivent être en **français**.
-2.  **Instructions Détaillées et Lisibles :**
+1.  **Langue :** Tous les noms de recettes, listes d'ingrédients et instructions doivent être en **français**.
+2.  **Liste d'Ingrédients Détaillée pour Chaque Recette :**
+    *   Pour chaque ingrédient de la recette que vous proposez (exclusivement tirés de '{{{ingredients}}}'), **spécifiez une quantité réaliste et appropriée** (ex: "200g de blancs de poulet", "1 gros oignon", "2 cuillères à soupe d'huile d'olive", "sel et poivre au goût").
+    *   La liste des ingrédients doit être prête à être utilisée pour faire les courses.
+3.  **Instructions Détaillées et Lisibles :**
     *   **Complètes :** Guidage étape par étape, précis, adapté même aux novices.
     *   **Claires :** Langage simple, sans jargon excessif.
     *   **Structurées :** Étapes numérotées. Pour les étapes complexes, utilisez des sous-puces.
     *   **Orientées Action :** Commencez les étapes par des verbes.
-3.  **Informations Nutritionnelles Estimées (Détaillées si possible) :**
+4.  **Informations Nutritionnelles Estimées (Détaillées si possible) :**
     *   Fournissez une **estimation** des informations nutritionnelles par portion : calories, protéines, glucides, lipides. Si possible, ajoutez des estimations pour les fibres, sucres, et sodium.
     *   Indiquez clairement que ce sont des estimations. Omettez les champs si une estimation fiable est impossible.
-4.  **Estimations des Temps :**
+5.  **Estimations des Temps :**
     *   \`estimatedPreparationTime\` : Réaliste et clair (ex: "20 minutes").
     *   \`estimatedCookingTime\` : **Analysez attentivement les 'instructions'** pour déduire une estimation réaliste (ex: "environ 30 minutes", "45 min - 1 heure"). Si aucune cuisson n'est requise (ex: salade), indiquez "Aucun" ou "N/A".
-5.  **Niveau de Difficulté Estimé (\`difficultyLevel\`) :**
+6.  **Niveau de Difficulté Estimé (\`difficultyLevel\`) :**
     *   Évaluez la difficulté (Facile, Moyen, Difficile) en considérant la complexité des techniques, le nombre d'ingrédients à gérer, et le temps total.
-6.  **Adaptation et Alignement aux Objectifs :**
+7.  **Adaptation et Alignement aux Objectifs :**
     *   Respectez scrupuleusement les \`dietaryPreferences\` et \`allergies\` en utilisant UNIQUEMENT les ingrédients fournis.
     *   **\`goalAlignment\` :**
         *   Si des \`targetCalories\` ou \`macronutrientProfile\` sont spécifiés, expliquez clairement et brièvement (1-2 phrases) dans ce champ comment la recette proposée s'aligne (ou tente de s'aligner) avec ces objectifs, en se basant sur vos estimations nutritionnelles. Par exemple: "Cette recette est estimée à X calories, ce qui correspond bien à votre objectif de Y calories. Son profil riche en Z et pauvre en W s'aligne avec votre demande."
@@ -139,3 +142,4 @@ const suggestRecipesFlow = ai.defineFlow(
     return output;
   }
 );
+

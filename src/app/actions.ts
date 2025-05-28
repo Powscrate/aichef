@@ -47,14 +47,16 @@ export async function getRecipesAction(
     );
 
     const recipesWithImagesPromises = validRecipesBase.map(async (recipeBase) => {
+      let imageUrl: string | undefined = undefined;
       try {
         const imageInput: GenerateRecipeImageInput = { recipeName: recipeBase.name };
-        const imageUrl = await generateRecipeImage(imageInput);
-        return { ...recipeBase, imageUrl };
+        imageUrl = await generateRecipeImage(imageInput); // This should be a data URI if successful
       } catch (imageError) {
         console.error(`Erreur lors de la génération de l'image pour la recette "${recipeBase.name}":`, imageError);
-        return { ...recipeBase, imageUrl: undefined };
+        // If image generation fails, use a placeholder
+        imageUrl = `https://placehold.co/600x400.png`; 
       }
+      return { ...recipeBase, imageUrl };
     });
 
     const recipesWithImages: Recipe[] = await Promise.all(recipesWithImagesPromises);
@@ -66,7 +68,7 @@ export async function getRecipesAction(
             ingredients: [],
             instructions: "",
             notesOnAdaptation: placeholderMessage,
-            imageUrl: undefined
+            imageUrl: `https://placehold.co/600x400.png`, // Use placeholder for error/no recipe cases too
         }], error: null };
     }
 
@@ -189,3 +191,4 @@ export async function getShoppingListAction(
     return { data: null, error: errorMessage };
   }
 }
+
