@@ -1,3 +1,4 @@
+
 // src/app/actions.ts
 "use server";
 
@@ -7,6 +8,7 @@ import { suggestRecipeVariations, type SuggestRecipeVariationsInput, type Sugges
 import { getDailyCookingTip, type GetDailyCookingTipOutput } from "@/ai/flows/get-daily-cooking-tip-flow";
 import { suggestIngredientSubstitution, type SuggestIngredientSubstitutionInput, type SuggestIngredientSubstitutionOutput as SuggestIngredientSubstitutionGenkitOutput } from "@/ai/flows/suggest-ingredient-substitution-flow";
 import { generateShoppingList, type GenerateShoppingListInput, type GenerateShoppingListOutput as GenerateShoppingListGenkitOutput } from "@/ai/flows/generate-shopping-list-flow";
+import { getCulinaryAdvice, type CulinaryAssistantInput, type CulinaryAssistantOutput } from "@/ai/flows/culinary-assistant-flow";
 
 
 import type { Recipe, SuggestRecipeVariationsOutput, SuggestIngredientSubstitutionOutput, GenerateShoppingListOutput } from "@/lib/types";
@@ -48,30 +50,31 @@ export async function getRecipesAction(
 
     const recipesWithImagesPromises = validRecipesBase.map(async (recipeBase) => {
       let imageUrl: string | undefined = undefined;
+      const aiHint = recipeBase.name.toLowerCase().split(' ').slice(0,2).join(' ');
       try {
         const imageInput: GenerateRecipeImageInput = { recipeName: recipeBase.name };
-        imageUrl = await generateRecipeImage(imageInput); // This should be a data URI if successful
+        imageUrl = await generateRecipeImage(imageInput); 
       } catch (imageError) {
         console.error(`Erreur lors de la génération de l'image pour la recette "${recipeBase.name}":`, imageError);
-        // If image generation fails, use a placeholder
         imageUrl = `https://placehold.co/600x400.png`; 
       }
-      return { ...recipeBase, imageUrl };
+      return { ...recipeBase, imageUrl, aiHint };
     });
 
     const recipesWithImages: Recipe[] = await Promise.all(recipesWithImagesPromises);
 
     if (validRecipesBase.length === 0 && recipeTextResult.recipes.length > 0) {
         const placeholderMessage = recipeTextResult.recipes[0].notesOnAdaptation || recipeTextResult.recipes[0].goalAlignment || "Aucune recette compatible trouvée.";
+        const aiHint = recipeTextResult.recipes[0].name.toLowerCase().split(' ').slice(0,2).join(' ');
          return { data: [{
             name: recipeTextResult.recipes[0].name,
             ingredients: [],
             instructions: "",
             notesOnAdaptation: placeholderMessage,
-            imageUrl: `https://placehold.co/600x400.png`, // Use placeholder for error/no recipe cases too
+            imageUrl: `https://placehold.co/600x400.png`,
+            aiHint: aiHint,
         }], error: null };
     }
-
 
     return { data: recipesWithImages, error: null };
 
@@ -192,3 +195,27 @@ export async function getShoppingListAction(
   }
 }
 
+interface CulinaryAdviceActionResult {
+  data: string | null;
+  error: string | null;
+}
+
+export async function getCulinaryAdviceAction(question: string): Promise<CulinaryAdviceActionResult> {
+  if (!question || question.trim() === "") {
+    return { data: null, error: "Veuillez poser une question." };
+  }
+
+  const input: CulinaryAssistantInput = { question };
+
+  try {
+    const result: CulinaryAssistantOutput = await getCulinaryAdvice(input);
+    if (!result || !result.answer) {
+      return { data: null, error: "L'IA n'a pas pu fournir de réponse à cette question." };
+    }
+    return { data: result.answer, error: null };
+  } catch (e) {
+    console.error("Erreur dans getCulinaryAdviceAction:", e);
+    const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la récupération du conseil culinaire.";
+    return { data: null, error: errorMessage };
+  }
+}
