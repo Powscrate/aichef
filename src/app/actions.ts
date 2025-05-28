@@ -6,9 +6,10 @@ import { generateRecipeImage, type GenerateRecipeImageInput } from "@/ai/flows/g
 import { suggestRecipeVariations, type SuggestRecipeVariationsInput, type SuggestRecipeVariationsOutput as SuggestRecipeVariationsGenkitOutput } from "@/ai/flows/suggest-recipe-variations-flow";
 import { getDailyCookingTip, type GetDailyCookingTipOutput } from "@/ai/flows/get-daily-cooking-tip-flow";
 import { suggestIngredientSubstitution, type SuggestIngredientSubstitutionInput, type SuggestIngredientSubstitutionOutput as SuggestIngredientSubstitutionGenkitOutput } from "@/ai/flows/suggest-ingredient-substitution-flow";
+import { generateShoppingList, type GenerateShoppingListInput, type GenerateShoppingListOutput as GenerateShoppingListGenkitOutput } from "@/ai/flows/generate-shopping-list-flow";
 
 
-import type { Recipe, SuggestRecipeVariationsOutput, SuggestIngredientSubstitutionOutput } from "@/lib/types";
+import type { Recipe, SuggestRecipeVariationsOutput, SuggestIngredientSubstitutionOutput, GenerateShoppingListOutput } from "@/lib/types";
 
 interface RecipeActionResult {
   data: Recipe[] | null;
@@ -27,16 +28,16 @@ export async function getRecipesAction(
   }
 
   try {
-    const recipeTextInput: SuggestRecipesInput = { 
+    const recipeTextInput: SuggestRecipesInput = {
       ingredients,
       dietaryPreferences: dietaryPreferences && dietaryPreferences.length > 0 ? dietaryPreferences : undefined,
       allergies: allergies && allergies.trim() !== "" ? allergies : undefined,
       targetCalories: targetCalories && targetCalories.trim() !== "" ? targetCalories : undefined,
       macronutrientProfile: macronutrientProfile && macronutrientProfile.trim() !== "" ? macronutrientProfile : undefined,
     };
-    
+
     const recipeTextResult: SuggestRecipesGenkitOutput = await suggestRecipes(recipeTextInput);
-    
+
     if (!recipeTextResult || !recipeTextResult.recipes) {
       return { data: null, error: "Impossible de générer des recettes. L'IA a renvoyé un format inattendu." };
     }
@@ -44,7 +45,7 @@ export async function getRecipesAction(
     const validRecipesBase = recipeTextResult.recipes.filter(
       recipe => recipe.name !== "Erreur de l'IA" && recipe.name !== "Aucune recette trouvée" && recipe.ingredients.length > 0
     );
-    
+
     const recipesWithImagesPromises = validRecipesBase.map(async (recipeBase) => {
       try {
         const imageInput: GenerateRecipeImageInput = { recipeName: recipeBase.name };
@@ -52,7 +53,7 @@ export async function getRecipesAction(
         return { ...recipeBase, imageUrl };
       } catch (imageError) {
         console.error(`Erreur lors de la génération de l'image pour la recette "${recipeBase.name}":`, imageError);
-        return { ...recipeBase, imageUrl: undefined }; 
+        return { ...recipeBase, imageUrl: undefined };
       }
     });
 
@@ -61,11 +62,11 @@ export async function getRecipesAction(
     if (validRecipesBase.length === 0 && recipeTextResult.recipes.length > 0) {
         const placeholderMessage = recipeTextResult.recipes[0].notesOnAdaptation || recipeTextResult.recipes[0].goalAlignment || "Aucune recette compatible trouvée.";
          return { data: [{
-            name: recipeTextResult.recipes[0].name, 
+            name: recipeTextResult.recipes[0].name,
             ingredients: [],
             instructions: "",
             notesOnAdaptation: placeholderMessage,
-            imageUrl: undefined 
+            imageUrl: undefined
         }], error: null };
     }
 
@@ -81,7 +82,7 @@ export async function getRecipesAction(
 
 
 interface VariationActionResult {
-  data: SuggestRecipeVariationsOutput | null; 
+  data: SuggestRecipeVariationsOutput | null;
   error: string | null;
 }
 
@@ -150,11 +151,41 @@ export async function getIngredientSubstitutionAction(
     if (!result || !result.substitutions || result.substitutions.length === 0) {
       return { data: null, error: "L'IA n'a pas pu suggérer de substitutions pour cet ingrédient dans cette recette." };
     }
-    // Le type est déjà compatible grâce à l'inférence Zod et l'alias dans src/lib/types.ts
     return { data: result, error: null };
   } catch (e) {
     console.error(`Erreur dans getIngredientSubstitutionAction pour "${input.ingredientToSubstitute}" dans "${input.originalRecipeName}":`, e);
     const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la suggestion de substitutions.";
+    return { data: null, error: errorMessage };
+  }
+}
+
+interface ShoppingListActionResult {
+  data: GenerateShoppingListOutput | null;
+  error: string | null;
+}
+
+export async function getShoppingListAction(
+  recipeName: string,
+  recipeIngredients: string[]
+): Promise<ShoppingListActionResult> {
+  if (!recipeName || recipeIngredients.length === 0) {
+    return { data: null, error: "Le nom de la recette et les ingrédients sont nécessaires pour générer une liste de courses." };
+  }
+
+  const input: GenerateShoppingListInput = {
+    recipeName,
+    recipeIngredients,
+  };
+
+  try {
+    const result: GenerateShoppingListGenkitOutput = await generateShoppingList(input);
+    if (!result || !result.shoppingList || result.shoppingList.length === 0) {
+      return { data: null, error: "L'IA n'a pas pu générer de liste de courses pour cette recette." };
+    }
+    return { data: result as GenerateShoppingListOutput, error: null };
+  } catch (e) {
+    console.error(`Erreur dans getShoppingListAction pour "${recipeName}":`, e);
+    const errorMessage = e instanceof Error ? e.message : "Une erreur inattendue s'est produite lors de la génération de la liste de courses.";
     return { data: null, error: errorMessage };
   }
 }

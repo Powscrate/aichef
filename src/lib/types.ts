@@ -4,7 +4,6 @@ export interface NutritionalInfo {
   protein?: string;
   carbs?: string;
   fat?: string;
-  // Potentially more detailed fields if AI can provide them
   fiber?: string;
   sugar?: string;
   sodium?: string;
@@ -19,8 +18,8 @@ export interface Recipe {
   notesOnAdaptation?: string;
   estimatedPreparationTime?: string;
   estimatedCookingTime?: string;
-  difficultyLevel?: string; 
-  goalAlignment?: string; // New: Explanation of how it meets nutritional goals
+  difficultyLevel?: string;
+  goalAlignment?: string;
 }
 
 export interface RecipeVariation {
@@ -40,21 +39,38 @@ export interface RecipeWithVariations extends Recipe {
   variationsError?: string | null;
 }
 
-// Types for Ingredient Substitution Flow
 export interface SuggestIngredientSubstitutionInput {
   originalRecipeName: string;
   ingredientToSubstitute: string;
   originalIngredientsList: string[];
   originalInstructions: string;
-  substitutionConstraints?: string; // e.g., "vegetarian", "gluten-free", "low-sodium"
+  substitutionConstraints?: string;
 }
 
 export interface SuggestedSubstitute {
   substitute: string;
-  notes: string; // Impact on recipe, preparation, taste, etc.
-  confidence?: string; // Optional: AI's confidence or suitability
+  notes: string;
+  confidence?: string;
 }
 
 export interface SuggestIngredientSubstitutionOutput {
   substitutions: SuggestedSubstitute[];
+}
+
+// Types for Shopping List Generation
+export interface ShoppingListCategory {
+  categoryName: string;
+  items: string[];
+}
+
+export interface GenerateShoppingListOutput {
+  recipeName: string;
+  shoppingList: ShoppingListCategory[];
+  // notes?: string; // Potentially add notes from AI later
+}
+
+export interface RecipeWithShoppingList extends RecipeWithVariations {
+  shoppingList?: ShoppingListCategory[];
+  isLoadingShoppingList?: boolean;
+  shoppingListError?: string | null;
 }
