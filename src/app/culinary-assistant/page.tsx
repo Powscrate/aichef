@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCulinaryAdviceAction } from "@/app/actions";
-import { Lightbulb, Sparkles, AlertCircle, MessageSquareQuestion } from "lucide-react";
+import { Lightbulb, Sparkles, AlertCircle, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
@@ -76,7 +76,7 @@ export default function CulinaryAssistantPage() {
         <Card className="max-w-2xl mx-auto shadow-lg border-border">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-extrabold tracking-tight text-primary flex items-center justify-center gap-2">
-              <MessageSquareQuestion className="h-8 w-8" /> Aide Culinaire IA
+              <HelpCircle className="h-8 w-8" /> Aide Culinaire IA
             </CardTitle>
             <CardDescription className="text-md text-muted-foreground pt-2">
               Posez n'importe quelle question de cuisine à notre assistant IA !

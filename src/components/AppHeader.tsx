@@ -2,7 +2,7 @@
 // src/components/AppHeader.tsx
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Star, Info, MessageSquareQuestion } from 'lucide-react'; 
+import { Star, Info, HelpCircle } from 'lucide-react'; 
 
 export function AppHeader() {
   return (
@@ -16,7 +16,7 @@ export function AppHeader() {
         </Link>
         <nav className="flex items-center gap-3 sm:gap-4 md:gap-6">
           <Link href="/culinary-assistant" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            <MessageSquareQuestion className="h-5 w-5" />
+            <HelpCircle className="h-5 w-5" />
             Aide IA
           </Link>
           <Link href="/favorites" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
