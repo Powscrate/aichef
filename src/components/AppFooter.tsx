@@ -4,7 +4,6 @@
 
 import { useState, useEffect } from "react";
 import { getDailyCookingTipAction } from "@/app/actions";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Lightbulb } from "lucide-react";
 
@@ -61,29 +60,30 @@ export function AppFooter() {
     <footer className="py-6 border-t border-border text-sm text-muted-foreground">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {isLoadingTip && typeof window !== 'undefined' && (
-          <div className="mb-4 p-3 max-w-2xl mx-auto">
-            <Skeleton className="h-5 w-1/3 mb-2" />
-            <Skeleton className="h-4 w-full" />
+          <div className="mb-4 p-3 w-full">
+            <Skeleton className="h-5 w-1/3 mb-2 rounded-md" />
+            <Skeleton className="h-4 w-full rounded-md" />
           </div>
         )}
         {!isLoadingTip && dailyTip && typeof window !== 'undefined' && (
-          <Alert className="mb-6 border-primary/50 bg-primary/10 max-w-2xl mx-auto text-center">
-            <Lightbulb className="h-5 w-5 text-primary mx-auto mb-1 sm:mx-0 sm:absolute sm:left-4 sm:top-4" />
-            <AlertTitle className="text-primary font-semibold mt-0 sm:mt-0 [&+div]:pt-0 sm:[&>svg~*]:pl-7">Astuce Culinaire du Jour</AlertTitle>
-            <AlertDescription className="text-foreground/80 whitespace-pre-line">
+          <div className="mb-6 p-4 bg-primary/10 border border-primary/30 rounded-lg w-full text-left shadow">
+            <h4 className="flex items-center gap-2 text-md font-semibold text-primary mb-2">
+              <Lightbulb className="h-5 w-5" />
+              Astuce Culinaire du Jour
+            </h4>
+            <p className="text-sm text-foreground/90 whitespace-pre-line">
               {dailyTip}
-            </AlertDescription>
-          </Alert>
+            </p>
+          </div>
         )}
         <div className="text-center">
           {currentYear !== null ? (
             <p>&copy; {currentYear} AI Chef.</p>
           ) : (
-            <p>Chargement du copyright...</p>
+            <Skeleton className="h-5 w-40 mx-auto rounded-md" />
           )}
         </div>
       </div>
     </footer>
   );
 }
-
