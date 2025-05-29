@@ -61,16 +61,16 @@ export function AppFooter() {
     <footer className="py-6 border-t border-border text-sm text-muted-foreground">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {isLoadingTip && typeof window !== 'undefined' && (
-          <div className="mb-4 p-3 max-w-md mx-auto">
+          <div className="mb-4 p-3 max-w-2xl mx-auto">
             <Skeleton className="h-5 w-1/3 mb-2" />
             <Skeleton className="h-4 w-full" />
           </div>
         )}
         {!isLoadingTip && dailyTip && typeof window !== 'undefined' && (
-          <Alert className="mb-6 border-primary/50 bg-primary/10 max-w-md mx-auto text-center">
+          <Alert className="mb-6 border-primary/50 bg-primary/10 max-w-2xl mx-auto text-center">
             <Lightbulb className="h-5 w-5 text-primary mx-auto mb-1 sm:mx-0 sm:absolute sm:left-4 sm:top-4" />
             <AlertTitle className="text-primary font-semibold mt-0 sm:mt-0 [&+div]:pt-0 sm:[&>svg~*]:pl-7">Astuce Culinaire du Jour</AlertTitle>
-            <AlertDescription className="text-foreground/80">
+            <AlertDescription className="text-foreground/80 whitespace-pre-line">
               {dailyTip}
             </AlertDescription>
           </Alert>
@@ -86,3 +86,4 @@ export function AppFooter() {
     </footer>
   );
 }
+
