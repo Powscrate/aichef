@@ -1,8 +1,9 @@
+
 // src/components/RecipeDisplay.tsx
 "use client";
 
 import React, { useState } from "react";
-import type { Recipe, RecipeWithVariations, SuggestIngredientSubstitutionInput, SuggestedSubstitute, GenerateShoppingListOutput, ShoppingListCategory, RecipeWithShoppingList } from "@/lib/types";
+import type { Recipe, RecipeWithVariations, GenerateShoppingListOutput, RecipeWithShoppingList } from "@/lib/types";
 import Image from 'next/image';
 import {
   Accordion,
@@ -16,20 +17,9 @@ import { UtensilsCrossed, ListChecks, CookingPot, AlertCircle, ImageOff, Heart, 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useToast } from "@/hooks/use-toast";
-import { getRecipeVariationsAction, getIngredientSubstitutionAction, getShoppingListAction } from "@/app/actions";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { getRecipeVariationsAction, getShoppingListAction } from "@/app/actions";
+import { SubstitutionDialog } from "./dialogs/SubstitutionDialog";
+import { ShoppingListDialog } from "./dialogs/ShoppingListDialog";
 
 
 interface RecipeDisplayProps {
@@ -48,238 +38,6 @@ const InfoItem: React.FC<{ icon: React.ElementType; label: string; value?: strin
     </div>
   );
 };
-
-interface SubstitutionDialogProps {
-  recipe: Recipe;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-function SubstitutionDialog({ recipe, isOpen, onClose }: SubstitutionDialogProps) {
-  const [selectedIngredient, setSelectedIngredient] = useState<string>("");
-  const [constraints, setConstraints] = useState<string>("");
-  const [isLoadingSubstitutions, setIsLoadingSubstitutions] = useState(false);
-  const [substitutionSuggestions, setSubstitutionSuggestions] = useState<SuggestedSubstitute[]>([]);
-  const [substitutionError, setSubstitutionError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    if (isOpen) {
-      setSelectedIngredient(recipe.ingredients[0] || "");
-      setConstraints("");
-      setSubstitutionSuggestions([]);
-      setSubstitutionError(null);
-    }
-  }, [isOpen, recipe]);
-
-  const handleFetchSubstitutions = async () => {
-    if (!selectedIngredient) {
-      toast({ title: "Erreur", description: "Veuillez sélectionner un ingrédient.", variant: "destructive" });
-      return;
-    }
-    setIsLoadingSubstitutions(true);
-    setSubstitutionSuggestions([]);
-    setSubstitutionError(null);
-
-    const input: SuggestIngredientSubstitutionInput = {
-      originalRecipeName: recipe.name,
-      ingredientToSubstitute: selectedIngredient,
-      originalIngredientsList: recipe.ingredients,
-      originalInstructions: recipe.instructions,
-      substitutionConstraints: constraints.trim() !== "" ? constraints : undefined,
-    };
-
-    const result = await getIngredientSubstitutionAction(input);
-    setIsLoadingSubstitutions(false);
-
-    if (result.error) {
-      setSubstitutionError(result.error);
-      toast({ title: "Erreur de Substitution", description: result.error, variant: "destructive" });
-    } else if (result.data && result.data.substitutions.length > 0) {
-      setSubstitutionSuggestions(result.data.substitutions);
-      toast({ title: "Substitutions Trouvées!", description: `L'IA a trouvé ${result.data.substitutions.length} idée(s) pour remplacer ${selectedIngredient}.` });
-    } else {
-      setSubstitutionError("L'IA n'a pas pu suggérer de substitutions pour cet ingrédient avec ces contraintes.");
-      toast({ title: "Aucune Substitution Trouvée", description: "L'IA n'a pas pu suggérer de substitutions pour cet ingrédient avec ces contraintes.", variant: "default" });
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Replace className="h-6 w-6 text-primary" />
-            Conseiller en Substitution d'Ingrédients
-          </DialogTitle>
-          <DialogDescription>
-            Pour la recette : <span className="font-semibold text-foreground">{recipe.name}</span>.
-            Choisissez un ingrédient à remplacer et spécifiez des contraintes si besoin.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
-          <div>
-            <Label htmlFor="ingredient-select">Ingrédient à remplacer</Label>
-            <Select value={selectedIngredient} onValueChange={setSelectedIngredient}>
-              <SelectTrigger id="ingredient-select" className="w-full mt-1">
-                <SelectValue placeholder="Sélectionnez un ingrédient" />
-              </SelectTrigger>
-              <SelectContent>
-                {recipe.ingredients.map((ing, idx) => (
-                  <SelectItem key={idx} value={ing}>{ing}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="substitution-constraints">Contraintes (optionnel)</Label>
-            <Input
-              id="substitution-constraints"
-              value={constraints}
-              onChange={(e) => setConstraints(e.target.value)}
-              placeholder="ex: végétarien, sans gluten, moins épicé"
-              className="mt-1"
-            />
-          </div>
-          <Button onClick={handleFetchSubstitutions} disabled={isLoadingSubstitutions || !selectedIngredient} className="w-full">
-            {isLoadingSubstitutions ? (
-              <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Recherche de substitutions...</>
-            ) : (
-              <> <ChefHat className="mr-2 h-4 w-4" /> Obtenir des suggestions </>
-            )}
-          </Button>
-        </div>
-
-        {isLoadingSubstitutions && (
-          <div className="mt-4 space-y-3">
-            <Skeleton className="h-5 w-1/3 rounded" />
-            <Skeleton className="h-4 w-full rounded" />
-            <Skeleton className="h-4 w-5/6 rounded" />
-          </div>
-        )}
-
-        {substitutionError && !isLoadingSubstitutions && (
-          <div className="mt-4 p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
-            <AlertCircle className="h-4 w-4" />
-            <p>{substitutionError}</p>
-          </div>
-        )}
-
-        {substitutionSuggestions.length > 0 && !isLoadingSubstitutions && (
-          <ScrollArea className="mt-4 max-h-60">
-            <div className="space-y-3 pr-2">
-              <h4 className="text-md font-semibold text-foreground">Suggestions de l'IA :</h4>
-              {substitutionSuggestions.map((sub, idx) => (
-                <Card key={idx} className="bg-muted/50 p-3">
-                  <p className="font-semibold text-primary">{sub.substitute}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{sub.notes}</p>
-                  {sub.confidence && <p className="text-xs text-accent mt-1">Confiance : {sub.confidence}</p>}
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        )}
-
-        <DialogFooter className="mt-6">
-          <DialogClose asChild>
-            <Button variant="outline" onClick={onClose}>Fermer</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-interface ShoppingListDialogProps {
-  shoppingListOutput: GenerateShoppingListOutput | null;
-  isLoading: boolean;
-  error: string | null;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-function ShoppingListDialog({ shoppingListOutput, isLoading, error, isOpen, onClose }: ShoppingListDialogProps) {
-  const { toast } = useToast();
-
-  const copyShoppingListToClipboard = () => {
-    if (!shoppingListOutput || shoppingListOutput.shoppingList.length === 0) return;
-
-    let textToCopy = `Liste de Courses pour : ${shoppingListOutput.recipeName}\n\n`;
-    shoppingListOutput.shoppingList.forEach(category => {
-      textToCopy += `--- ${category.categoryName} ---\n`;
-      category.items.forEach(item => {
-        textToCopy += `- ${item}\n`;
-      });
-      textToCopy += "\n";
-    });
-
-    navigator.clipboard.writeText(textToCopy.trim())
-      .then(() => {
-        toast({ title: "Copié !", description: "La liste de courses a été copiée." });
-      })
-      .catch(err => {
-        toast({ title: "Erreur", description: "Impossible de copier la liste.", variant: "destructive" });
-        console.error("Erreur de copie de la liste de courses:", err);
-      });
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6 text-primary" />
-            Liste de Courses
-          </DialogTitle>
-          {shoppingListOutput && <DialogDescription>Pour la recette : <span className="font-semibold text-foreground">{shoppingListOutput.recipeName}</span></DialogDescription>}
-        </DialogHeader>
-        <ScrollArea className="max-h-[60vh] py-4">
-          {isLoading && (
-            <div className="space-y-3">
-              {[1,2,3].map(i => (
-                <React.Fragment key={i}>
-                  <Skeleton className="h-5 w-1/3 rounded" />
-                  <Skeleton className="h-4 w-full rounded" />
-                  <Skeleton className="h-4 w-5/6 rounded" />
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-          {error && !isLoading && (
-            <div className="p-3 border border-destructive/50 rounded-md bg-destructive/10 text-destructive flex items-center gap-2 text-sm">
-              <AlertCircle className="h-4 w-4" /> <p>{error}</p>
-            </div>
-          )}
-          {shoppingListOutput && !isLoading && !error && (
-            <div className="space-y-3">
-              {shoppingListOutput.shoppingList.map((category, catIdx) => (
-                <div key={catIdx}>
-                  <h4 className="font-semibold text-md text-primary mb-1">{category.categoryName}</h4>
-                  <ul className="list-disc list-inside pl-4 space-y-0.5 text-sm text-muted-foreground">
-                    {category.items.map((item, itemIdx) => (
-                      <li key={itemIdx}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-        <DialogFooter className="mt-4">
-          {shoppingListOutput && !isLoading && !error && (
-            <Button variant="outline" onClick={copyShoppingListToClipboard} className="mr-auto">
-              <ClipboardCopy className="mr-2 h-4 w-4" /> Copier la Liste
-            </Button>
-          )}
-          <DialogClose asChild>
-            <Button variant="secondary" onClick={onClose}>Fermer</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: RecipeDisplayProps) {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
@@ -372,7 +130,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
   };
   
   const handleGenerateShoppingList = async (recipe: Recipe) => {
-    setCurrentRecipeForDialogs(recipe);
+    setCurrentRecipeForDialogs(recipe); // Needed if the dialog eventually needs the full recipe for context
     setIsLoadingShoppingList(true);
     setShoppingListData(null);
     setShoppingListError(null);
@@ -385,7 +143,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
       setShoppingListError(result.error);
       toast({ title: "Erreur de Liste de Courses", description: result.error, variant: "destructive" });
     } else if (result.data) {
-      setShoppingListData(result.data);
+      setShoppingListData(result.data); // This is GenerateShoppingListOutput
       toast({ title: "Liste de Courses Générée!", description: `Votre liste de courses pour "${recipe.name}" est prête.` });
     } else {
       setShoppingListError("L'IA n'a pas pu générer de liste de courses.");
@@ -480,7 +238,7 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
     <>
       <Accordion type="single" collapsible className="w-full space-y-4 mt-8">
         {recipesState.map((recipe, index) => {
-          const aiHint = recipe.name.toLowerCase().split(' ').slice(0,2).join(' ');
+          const aiHint = recipe.aiHint || recipe.name.toLowerCase().split(' ').slice(0,2).join(' ');
           return (
             <AccordionItem value={`recipe-${index}`} key={recipe.name + index} className="border border-border bg-card rounded-lg shadow-sm overflow-hidden">
               <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline text-primary w-full">
@@ -505,7 +263,6 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
                       />
                     </div>
                   ) : (
-                    // This case should ideally not be hit if actions.ts provides a placeholder
                     recipe.name !== "Aucune recette trouvée" && recipe.name !== "Erreur de l'IA" &&
                     <div className="mb-4 flex flex-col items-center justify-center h-40 bg-muted/50 rounded-md border border-dashed border-border">
                       <ImageOff className="h-12 w-12 text-muted-foreground mb-3" />
@@ -666,18 +423,15 @@ export function RecipeDisplay({ recipes: initialRecipes, isLoading, error }: Rec
         />
       )}
       
-      {isShoppingListDialogOpen && (
-         <ShoppingListDialog
-            shoppingListOutput={shoppingListData}
-            isLoading={isLoadingShoppingList}
-            error={shoppingListError}
-            isOpen={isShoppingListDialogOpen}
-            onClose={() => setIsShoppingListDialogOpen(false)}
-          />
-      )}
+      <ShoppingListDialog
+        shoppingListOutput={shoppingListData}
+        isLoading={isLoadingShoppingList}
+        error={shoppingListError}
+        isOpen={isShoppingListDialogOpen}
+        onClose={() => setIsShoppingListDialogOpen(false)}
+      />
     </>
   );
 }
 
 export { Card, CardContent, CardHeader };
-

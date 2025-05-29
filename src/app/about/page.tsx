@@ -1,19 +1,14 @@
+
 // src/app/about/page.tsx
 "use client";
 
 import { AppHeader } from "@/components/AppHeader";
+import { AppFooter } from "@/components/AppFooter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export default function AboutPage() {
-  const [currentYear, setCurrentYear] = useState<number | null>(null);
-
-  useEffect(() => {
-    setCurrentYear(new Date().getFullYear());
-  }, []);
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
@@ -72,13 +67,7 @@ export default function AboutPage() {
           </CardContent>
         </Card>
       </main>
-      <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
-        {currentYear !== null ? (
-          <p>&copy; {currentYear} AI Chef.</p>
-        ) : (
-          <p>Chargement...</p>
-        )}
-      </footer>
+      <AppFooter />
     </div>
   );
 }

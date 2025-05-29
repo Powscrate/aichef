@@ -2,12 +2,13 @@
 // src/app/culinary-assistant/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { AppHeader } from "@/components/AppHeader";
+import { AppFooter } from "@/components/AppFooter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -28,18 +29,13 @@ export default function CulinaryAssistantPage() {
   const [answer, setAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentYear, setCurrentYear] = useState<number | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setCurrentYear(new Date().getFullYear());
-  }, []);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
+    // reset, // Removed reset as per user's previous preference
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
@@ -65,7 +61,6 @@ export default function CulinaryAssistantPage() {
         title: "Réponse de l'IA",
         description: "L'IA a répondu à votre question !",
       });
-      // Ne pas réinitialiser le formulaire ici pour que l'utilisateur voie sa question
     }
   };
 
@@ -149,13 +144,7 @@ export default function CulinaryAssistantPage() {
           </CardContent>
         </Card>
       </main>
-      <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
-        {currentYear !== null ? (
-          <p>&copy; {currentYear} AI Chef.</p>
-        ) : (
-          <p>Chargement...</p>
-        )}
-      </footer>
+      <AppFooter />
     </div>
   );
 }

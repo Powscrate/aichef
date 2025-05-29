@@ -2,17 +2,11 @@
 // src/app/culinary-assistant/loading.tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppHeader } from "@/components/AppHeader";
+import { AppFooter } from "@/components/AppFooter";
 
 export default function CulinaryAssistantLoading() {
-  const [currentYear, setCurrentYear] = useState<number | null>(null);
-
-  useEffect(() => {
-    setCurrentYear(new Date().getFullYear());
-  }, []);
-  
   return (
     <div className="flex flex-col min-h-screen">
       <AppHeader />
@@ -33,13 +27,7 @@ export default function CulinaryAssistantLoading() {
             </div>
         </div>
       </main>
-       <footer className="py-6 text-center text-sm text-muted-foreground border-t">
-         {currentYear !== null ? (
-            <p>&copy; {currentYear} AI Chef.</p>
-            ) : (
-            <p>Chargement...</p>
-            )}
-      </footer>
+      <AppFooter />
     </div>
   );
 }
