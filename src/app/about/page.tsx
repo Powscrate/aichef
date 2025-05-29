@@ -52,7 +52,16 @@ export default function AboutPage() {
                 <li>Astuce culinaire quotidienne.</li>
                 <li>Possibilité de sauvegarder vos recettes favorites.</li>
                 <li>Interface utilisateur épurée avec mode sombre et clair.</li>
+                <li>Aide culinaire IA pour vos questions générales de cuisine.</li>
+                <li>Génération de listes de courses catégorisées.</li>
               </ul>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <h3 className="text-xl font-semibold text-foreground mb-3">Développement :</h3>
+              <p>
+                Cette application a été développée avec passion par MAMPIONONTIAKO Tantely Etienne Théodore.
+              </p>
             </div>
 
             <div className="text-center pt-4">
